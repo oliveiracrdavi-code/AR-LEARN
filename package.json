@@ -6,14 +6,16 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "fase1:teste": "tsx --env-file=.env.local scripts/fase1-testar-episodio.ts"
   },
   "dependencies": {
     "next": "^16.2.10",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "@supabase/supabase-js": "^2.110.0",
-    "server-only": "^0.0.1"
+    "server-only": "^0.0.1",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "typescript": "^6.0.3",
@@ -22,6 +24,7 @@
     "@types/react-dom": "^19.0.0",
     "eslint": "^9.17.0",
     "eslint-config-next": "^16.2.10",
-    "@eslint/eslintrc": "^3.2.0"
+    "@eslint/eslintrc": "^3.2.0",
+    "tsx": "^4.22.4"
   }
 }
