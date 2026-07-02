@@ -22,3 +22,6 @@ coverage/
 *.log
 .turbo/
 *.tsbuildinfo
+
+# saída de scripts de teste (conteúdo gerado, não versionado)
+scripts/output/
