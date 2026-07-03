@@ -49,3 +49,7 @@ Não é carregado por padrão em cada sessão.
 - Contrato JSON do Learn implementado literalmente a partir da seção 9
   do Sistema_Autonomo_v2, com validação `zod` `.strict()` em todos os
   níveis (não aceita campos extras nem faltando).
+- Fase 1 pausada em 2026-07-03 aguardando: (1) acesso de gerente à
+  conta do canal Altamente Rentável para OAuth, (2) crédito no
+  OpenRouter. Retomar assim que Davi trouxer as 6 credenciais
+  completas (YouTube ×4 + Groq + OpenRouter).
