@@ -85,3 +85,32 @@ Não é carregado por padrão em cada sessão.
   (liberar `openrouter.ai` e `api.groq.com` nas configurações de rede
   do ambiente do Claude Code on the web) ou rodar este teste a partir
   de outro ambiente com rede irrestrita.
+
+## 2026-07-03 — Adendo Vitrine e Login (9º PDF, ADICIONA ao Planejamento V2)
+- Recebido `AR_LEARN_Adendo_Vitrine_e_Login.pdf`. Não substitui nada —
+  adiciona duas peças ao escopo da Fase 4 (Produto), inspiradas no
+  Astron Members mas 100% dentro do stack já aprovado (zero ferramenta
+  nova, zero custo novo):
+  1. Vitrine estilo Netflix na área de membros: fileiras horizontais
+     por Trilha (nome de resultado, não nome técnico), cards de
+     Módulos/Learns dentro de cada fileira. Construída com React +
+     Tailwind, buscando Trilhas/Learns do Supabase — mesma origem de
+     dados já planejada.
+  2. Login/cadastro com perfil individual por aluno via Supabase Auth
+     (já incluso, sem custo novo): páginas `/login`, `/cadastro`,
+     `/esqueci-senha`. Confirma explicitamente o que já estava implícito
+     no schema da Fase 0 (`perfis` + RLS por `auth.uid()`).
+- Regra de Ouro do adendo registrada em `docs/regras.md`: nome de
+  trilha é só embalagem — a trilha nasce DEPOIS de a IA varrer o
+  conteúdo real dos episódios, nunca antes; proibido forçar episódio
+  pra caber numa trilha. Os nomes de exemplo do PDF ("Como fazer seu
+  primeiro milhão" etc.) são rascunho, não lista final.
+- Nota para consideração futura (Fase 6/7, não uma ação agora): o
+  cérebro da Fase 1 gera os campos `trilha`/`modulo` por episódio
+  isolado (contrato do Sistema_Autonomo_v2). Isso é compatível com
+  "rascunho" — nada é publicado em `trilhas`/`modulos` na Fase 1 —, mas
+  a taxonomia final de trilhas só deve ser fechada depois de rodar o
+  backlog inteiro e reconciliar os nomes sugeridos por episódio contra
+  o volume real por tema. Não muda nada no código agora.
+- Escopo confirmado: isso é Fase 4. Não adiantado nada de UI/login
+  agora — seguimos na Fase 1.

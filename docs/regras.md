@@ -25,6 +25,16 @@ Respeitar os limites definidos no documento "Consumo e Gastos v2" fornecido
 pelo usuário. Nenhuma ação em lote que possa estourar cota gratuita sem
 antes confirmar com o usuário.
 
+## Trilhas nascem do conteúdo real (Adendo Vitrine e Login)
+O nome de uma trilha é só embalagem — proibido decidi-lo antes de a IA
+varrer o conteúdo real dos episódios. A trilha só é nomeada/organizada
+depois de identificar quais temas têm volume e substância suficientes
+no acervo. Proibido forçar um episódio a caber numa trilha só pra
+vitrine ficar bonita; se não houver episódios suficientes, o tema fica
+dentro de uma trilha mais ampla. Os nomes de exemplo do adendo
+("Como fazer seu primeiro milhão" etc.) são rascunho, não lista final.
+Cada Learn continua rastreável ao episódio de origem, sem exceção.
+
 ## Hierarquia entre documentos
 O documento "System Prompt NotebookLM" (produto/design/landing/área de
 membros) continua válido, exceto na seção de pipeline/esteira de produção,
