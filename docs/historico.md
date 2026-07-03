@@ -53,3 +53,35 @@ Não é carregado por padrão em cada sessão.
   conta do canal Altamente Rentável para OAuth, (2) crédito no
   OpenRouter. Retomar assim que Davi trouxer as 6 credenciais
   completas (YouTube ×4 + Groq + OpenRouter).
+- 2026-07-03 (mesmo dia, mais tarde): Davi trouxe as chaves novas de
+  Groq e OpenRouter (as anteriores tinham vazado em outro canal e já
+  foram revogadas por ele — não reutilizadas, não procuradas em log
+  nenhum). Chaves escritas só em `.env.local` (confirmado no
+  `.gitignore`, nunca commitado).
+- Criados `scripts/testar-schema-offline.ts` e
+  `scripts/testar-cerebro-isolado.ts` (+ scripts npm `schema:teste` e
+  `cerebro:teste`).
+- **Validação offline do contrato JSON (sem rede): sucesso.** O schema
+  zod aceita o fixture completo, rejeita fixture faltando
+  `mapa_mental_mermaid` e rejeita fixture com campo extra
+  (`.strict()` funcionando nos 3 casos).
+- **Teste isolado do cérebro (OpenRouter) com transcrição de exemplo:
+  bloqueado — não é erro de código nem de credencial.** O ambiente
+  sandbox tem uma política de rede que só permite acesso a uma lista
+  de hosts liberados (ex.: registry.npmjs.org, github, domínios
+  anthropic.com); `openrouter.ai` e `api.groq.com` não estão nela.
+  Erro exato reproduzido: `403 Host not in allowlist: openrouter.ai.
+  Add this host to your network egress settings to allow access.` — o
+  mesmo host apareceu bloqueado para `api.groq.com` no proxy do
+  ambiente. Isso significa que o fallback Groq também não pôde ser
+  testado de ponta a ponta aqui.
+- Modelo do cérebro: mantido o default `google/gemini-2.0-flash-001`
+  (Gemini Flash, não é `openai/gpt-4o`) conforme pedido — mas não deu
+  pra confirmar o slug/preço contra o catálogo ao vivo do OpenRouter
+  porque a mesma política de rede bloqueia `openrouter.ai/api/v1/models`.
+  Confirmar o slug exato assim que a rede for liberada ou rodando este
+  mesmo teste fora deste sandbox.
+- Encaminhado ao usuário: ou ajustar a política de rede deste ambiente
+  (liberar `openrouter.ai` e `api.groq.com` nas configurações de rede
+  do ambiente do Claude Code on the web) ou rodar este teste a partir
+  de outro ambiente com rede irrestrita.

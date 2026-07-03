@@ -47,8 +47,16 @@ Fase 0 aprovada. Não avançar para a Fase 2 sem aprovação explícita.
 - [x] Script de teste: `scripts/fase1-testar-episodio.ts`
       (`npm run fase1:teste`) — build e dry-run (sem credenciais) já
       validados, falha limpa no ponto esperado
-- [ ] **Teste real com 1 episódio — pendente das credenciais do
-      usuário** (YouTube OAuth, Groq, OpenRouter)
+- [x] `scripts/testar-schema-offline.ts` (`npm run schema:teste`) —
+      contrato JSON validado offline: aceita fixture completo, rejeita
+      campo faltando e campo extra
+- [x] `scripts/testar-cerebro-isolado.ts` (`npm run cerebro:teste`) —
+      pronto, mas **bloqueado neste sandbox**: política de rede do
+      ambiente não permite `openrouter.ai` nem `api.groq.com` (ver
+      `docs/historico.md`, entrada de 2026-07-03). Rodar assim que a
+      rede for liberada ou fora deste ambiente.
+- [ ] **Teste real com 1 episódio (YouTube) — pendente das credenciais
+      de OAuth** (o usuário ainda não tem acesso de gerente ao canal)
 
 ## O que falta (próximas fases)
 - Rodar as migrations num projeto Supabase real (ainda não provisionado)
