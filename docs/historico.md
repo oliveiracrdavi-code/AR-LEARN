@@ -133,3 +133,23 @@ Não é carregado por padrão em cada sessão.
   - **AR-LEARN com API externa (Full)**: obrigatório para qualquer
     sessão que precise chamar OpenRouter, Groq ou a YouTube Data API
     de verdade (testes ponta a ponta da esteira, Fases 1 e além).
+
+- **Sessão nova aberta já dentro do ambiente "AR-LEARN com API
+  externa" (Full) — reteste deu o MESMO erro** (`403 Host not in
+  allowlist: openrouter.ai`), byte a byte igual ao anterior. A porta do
+  proxy local mudou (confirma que é sessão/container novo), mas o
+  bloqueio persiste. Duas tentativas consecutivas sem nenhuma mudança
+  → parado por aqui (Regra de Ouro: não insistir sozinho).
+- **Diagnóstico revisado**: a rejeição não aparece mais como falha de
+  CONNECT (`recentRelayFailures` vazio) — a conexão TLS é estabelecida
+  e o próprio proxy sintetiza a resposta 403 com a mensagem de
+  allowlist depois de inspecionar o Host. Isso sugere que existe uma
+  camada de allowlist de hosts separada do toggle "Trusted/None/Full"
+  do ambiente — possivelmente uma restrição de plataforma que esse
+  toggle não controla. O próprio `/root/.ccr/README.md` deste proxy
+  instrui a não tentar contornar e a reportar o host bloqueado ao
+  suporte/administrador se persistir.
+- **Aguardando decisão do usuário** sobre como prosseguir: procurar uma
+  configuração de egress mais granular, abrir chamado com o suporte do
+  Claude Code on the web, ou rodar este teste específico fora deste
+  sandbox (ex.: no PC, fase de migração tablet→PC).
