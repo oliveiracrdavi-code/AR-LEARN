@@ -646,3 +646,20 @@ Não é carregado por padrão em cada sessão.
     ignorado no git — não é ativo de produção), e
     `preparar-props-remotion.ts` passou a construir o `audioSrc` com
     `staticFile()` (importado de `remotion`) em vez do caminho cru.
+- **3ª e 4ª tentativas do teste ponta a ponta — step "Gerar fixture
+  real" travou 2x seguidas (~9-10 min cada, sem erro, sem progresso nos
+  logs) em vez de completar em ~35s como nas tentativas anteriores.**
+  Segui a regra de não insistir na mesma falha sem entender a causa:
+  cancelei as duas execuções travadas (`cancel_workflow_run`) em vez de
+  tentar uma 3ª vez às cegas, e investiguei antes de qualquer novo
+  disparo.
+  - **Causa raiz identificada**: `lib/mapa-mental/kroki.ts` nunca teve
+    timeout no `fetch` pro Kroki. Isso não dava problema antes porque
+    `gerar-fixture-real.ts` só chamava o Kroki uma vez (SVG); nesta
+    sessão, adicionei uma segunda chamada (PNG, pro mapa mental virar
+    ativo separado) — dobrando a exposição a uma instabilidade pontual
+    da instância pública do Kroki, e sem timeout o fetch trava pra
+    sempre, sem erro nenhum aparecer no log.
+  - **Corrigido**: `renderizarMapaMentalKroki` agora usa
+    `AbortController` com timeout de 30s, lançando um erro claro
+    (`Kroki não respondeu em 30s`) em vez de travar silenciosamente.
