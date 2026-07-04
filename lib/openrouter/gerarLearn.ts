@@ -3,7 +3,13 @@ import { SYSTEM_PROMPT_CEREBRO } from "./systemPrompt";
 
 // Modelo barato via OpenRouter (Manual das Ferramentas, seção 5).
 // Configurável por env var pra trocar sem tocar em código.
-const MODELO_BARATO = process.env.OPENROUTER_MODEL || "google/gemini-2.0-flash-001";
+// google/gemini-2.0-flash-001 foi descontinuado (404 "no endpoints
+// found" no catálogo atual) — confirmado via busca no catálogo real
+// do OpenRouter, não de memória. google/gemini-2.5-flash é o slug
+// vigente equivalente (~US$0,30/M tokens de entrada, ~US$2,50/M de
+// saída); deepseek/deepseek-chat é a alternativa também barata citada
+// no manual.
+const MODELO_BARATO = process.env.OPENROUTER_MODEL || "google/gemini-2.5-flash";
 const MAX_TENTATIVAS = 3;
 
 type Mensagem = { role: "system" | "user" | "assistant"; content: string };

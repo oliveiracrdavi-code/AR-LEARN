@@ -198,3 +198,27 @@ Não é carregado por padrão em cada sessão.
   resolveria a causa raiz — main segue sem o projeto). Corrigido e
   aberto PR #2: https://github.com/oliveiracrdavi-code/AR-LEARN/pull/2
 - Aguardando: Davi mergear o PR #2 e disparar o workflow de novo.
+- **Progresso real confirmado**: checkout, `npm ci` e `schema:teste`
+  passaram no Actions, e a chamada chegou de fato ao OpenRouter
+  (prova que chave e rede funcionam dali). Novo erro: `404 No
+  endpoints found for google/gemini-2.0-flash-001` — esse slug foi
+  descontinuado/nunca existiu no catálogo atual.
+- Consultado o catálogo real via WebSearch (WebFetch direto em
+  openrouter.ai retornou 403 — o site bloqueia esse tipo de acesso;
+  também confirmado que esta sandbox continua sem rede pra
+  `openrouter.ai`, então não deu pra validar localmente, só via
+  busca). Não foi usado nenhum slug de memória.
+- Slug atualizado para `google/gemini-2.5-flash` (~US$0,30/M tokens de
+  entrada, ~US$2,50/M de saída — confirmado por múltiplas fontes),
+  slug estável e não-preview, batendo com o que o Manual das
+  Ferramentas cita como exemplo ("Gemini Flash"). Descartado o alias
+  `~google/gemini-flash-latest` por não dar pra confirmar com certeza
+  se o `~` é só da URL do site ou também faz parte do id usado na
+  API — preferi o slug simples e verificável a arriscar de novo.
+  `deepseek/deepseek-chat` seguiu documentado como alternativa
+  (`OPENROUTER_MODEL`), também confirmado como slug real e vigente.
+- Corrigido em `lib/openrouter/gerarLearn.ts` e `.env.example`.
+  Type-check e `schema:teste` (offline) passaram aqui na sandbox; o
+  teste real da chamada ao OpenRouter só pode ser confirmado no
+  Actions. Aberto PR #3 só com essa correção.
+- Aguardando: Davi mergear o PR #3 e disparar o workflow de novo.
