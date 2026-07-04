@@ -421,3 +421,54 @@ Não é carregado por padrão em cada sessão.
   em produção isso é o esperado (episódios reais são dele mesmo), mas
   em testes com transcrição sintética/genérica isso pode soar como
   "encenação" — vale ficar de olho quando rodar com episódios reais.
+
+## 2026-07-04 — Troca de ferramenta de voz: Google Cloud TTS → Cloudflare Workers AI (MeloTTS)
+- **Decisão do usuário, documentada conforme a Regra de Ouro** (troca
+  explícita, com motivo registrado — não é desvio silencioso). Motivo:
+  o Google Cloud exige conta de faturamento com verificação de
+  identidade/CPF, que gerou complicação real na prática. Cloudflare
+  Workers AI resolve: conta já existe (mesma do Pages), tier gratuito
+  de 10.000 neurons/dia sem cartão, MeloTTS é MIT (uso comercial OK).
+  Custo estimado pelo usuário: ~18 neurons/min de áudio (~160 neurons
+  pra uma videoaula de 9 min, <2% do limite diário).
+- **Pesquisa feita antes de codar** (não inventado de memória):
+  - Slug confirmado: `@cf/myshell-ai/melotts`.
+  - Endpoint REST confirmado: `POST https://api.cloudflare.com/client/v4/accounts/{ACCOUNT_ID}/ai/run/@cf/myshell-ai/melotts`,
+    `Authorization: Bearer {CLOUDFLARE_API_TOKEN}`, corpo
+    `{"prompt": "...", "lang": "..."}`, resposta
+    `{"success", "result": {"audio": "<base64 mp3>"}}`.
+  - **Achado crítico**: tanto a [documentação da Cloudflare](https://developers.cloudflare.com/workers-ai/models/melotts/)
+    quanto o [repositório original do MeloTTS](https://github.com/myshell-ai/MeloTTS)
+    listam os idiomas suportados como inglês, espanhol, francês,
+    chinês, japonês e coreano — **português não está na lista**. Há
+    também [relato da comunidade](https://community.cloudflare.com/t/cf-myshell-ai-melotts-doesnt-work-in-spanish/811141)
+    de que nem o espanhol (que está na lista) funciona ("Error: 8002:
+    Invalid input"). Verificado também o catálogo de TTS da Cloudflare
+    (Aura-1/Aura-2 da Deepgram): só existem variantes `-en` e `-es`,
+    nenhuma em português.
+  - Reportei o achado ao usuário **antes de escrever qualquer código**
+    de chamada real, via pergunta direta (3 opções: testar mesmo assim
+    quando trouxer o token, voltar pro Google, ou buscar terceiro
+    provedor). Escolha do usuário: **testar mesmo assim quando trouxer
+    o token** — a documentação pode estar incompleta/desatualizada
+    (como sugere o próprio bug do espanhol relatado pela comunidade).
+- **Implementado**:
+  - `lib/tts/sintetizar.ts` reescrito para chamar o Workers AI (fetch
+    puro, sem SDK), mantendo a mesma assinatura pública
+    (`sintetizarRoteiro(texto): Promise<Buffer>`) — nada mais no
+    pipeline precisa mudar.
+  - Limite de caracteres por requisição fixado em 600 (conservador —
+    MeloTTS não documenta um limite oficial como o Google fazia;
+    revisitar depois de medir com a API real).
+  - Código antigo do Google Cloud TTS **movido, não apagado**, para
+    `lib/tts/obsoleto/` (`googleAuth.ts`, `sintetizarGoogleCloudTts.ts`),
+    comentado como obsoleto, não importado por nada ativo.
+  - `.env.example`: removida `GOOGLE_CLOUD_TTS_CREDENTIALS_JSON`,
+    adicionadas `CLOUDFLARE_API_TOKEN` e `CLOUDFLARE_ACCOUNT_ID`
+    (nomes, sem valores).
+  - `CLAUDE.md`, `docs/stack.md`, `docs/regras.md` atualizados.
+- **Não invocado** — sem `CLOUDFLARE_API_TOKEN`/`CLOUDFLARE_ACCOUNT_ID`
+  reais em lugar nenhum desta sessão. Aguardando o usuário trazer as
+  credenciais pra rodar o teste real com a transcrição de mercado
+  imobiliário (mesma da Fase 2) e confirmar (ou não) o suporte a
+  português.

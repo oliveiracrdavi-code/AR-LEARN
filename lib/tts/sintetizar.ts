@@ -1,36 +1,65 @@
-import { obterAccessTokenGoogle } from "./googleAuth";
+// Voz das videoaulas via Cloudflare Workers AI (modelo MeloTTS,
+// @cf/myshell-ai/melotts). Troca de ferramenta registrada em
+// docs/historico.md (2026-07-04): Google Cloud TTS exigia conta de
+// faturamento com verificação de identidade, o que travou o uso na
+// prática; Cloudflare já é conta existente (mesma do Pages), tier
+// gratuito de 10.000 neurons/dia, sem cartão.
+//
+// RISCO CONHECIDO, AINDA NÃO VALIDADO: a documentação oficial do
+// MeloTTS (Cloudflare e o repositório original myshell-ai/MeloTTS)
+// lista suporte a inglês, espanhol, francês, chinês, japonês e
+// coreano — português não aparece na lista, e há relato da comunidade
+// de que até o espanhol (que está na lista) falha com "Invalid input".
+// Por decisão do usuário, isso será testado com a API real assim que
+// as credenciais chegarem, em vez de descartado sem testar — mas o
+// resultado desse teste pode exigir trocar de modelo/idioma de novo.
+//
+// Sem guard "server-only" de propósito: este módulo roda em scripts e
+// no render Remotion via GitHub Actions, fora da árvore do Next.js
+// (mesmo motivo registrado pros outros módulos de pipeline na Fase 1).
 
-// Voz pt-BR única e fixa pro projeto todo (identidade sonora — Manual
-// das Ferramentas, seção 6). Não é clonagem.
-const VOZ_PADRAO = process.env.GOOGLE_TTS_VOICE_NAME || "pt-BR-Wavenet-B";
-const LIMITE_CARACTERES_POR_REQUISICAO = 4500; // margem sob o limite de ~5.000 da API
+const ENDPOINT_BASE = "https://api.cloudflare.com/client/v4/accounts";
+const MODELO = "@cf/myshell-ai/melotts";
+const IDIOMA = process.env.CLOUDFLARE_TTS_LANG || "pt";
 
-interface SynthesizeResponse {
-  audioContent: string; // base64
+// Limite conservador por requisição — o MeloTTS não documenta um
+// limite de caracteres oficial (diferente do Google, que documenta
+// ~5.000). Ajustar depois de medir com o modelo de verdade.
+const LIMITE_CARACTERES_POR_REQUISICAO = 600;
+
+interface WorkersAiResponse {
+  success: boolean;
+  result?: { audio: string }; // base64
+  errors?: { code: number; message: string }[];
 }
 
 async function sintetizarBloco(texto: string): Promise<Buffer> {
-  const accessToken = await obterAccessTokenGoogle();
-
-  const res = await fetch("https://texttospeech.googleapis.com/v1/text:synthesize", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      input: { text: texto },
-      voice: { languageCode: "pt-BR", name: VOZ_PADRAO },
-      audioConfig: { audioEncoding: "MP3" },
-    }),
-  });
-
-  if (!res.ok) {
-    throw new Error(`Google Cloud TTS falhou: ${res.status} ${await res.text()}`);
+  const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
+  const token = process.env.CLOUDFLARE_API_TOKEN;
+  if (!accountId || !token) {
+    throw new Error(
+      "CLOUDFLARE_ACCOUNT_ID / CLOUDFLARE_API_TOKEN não configuradas — precisa das credenciais do Cloudflare Workers AI."
+    );
   }
 
-  const json = (await res.json()) as SynthesizeResponse;
-  return Buffer.from(json.audioContent, "base64");
+  const res = await fetch(`${ENDPOINT_BASE}/${accountId}/ai/run/${MODELO}`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ prompt: texto, lang: IDIOMA }),
+  });
+
+  const json = (await res.json()) as WorkersAiResponse;
+
+  if (!res.ok || !json.success || !json.result) {
+    throw new Error(
+      `Cloudflare Workers AI (MeloTTS) falhou: ${res.status} ${JSON.stringify(json.errors ?? json)}`
+    );
+  }
+
+  return Buffer.from(json.result.audio, "base64");
 }
 
 function dividirEmBlocos(texto: string, limite: number): string[] {
@@ -48,13 +77,15 @@ function dividirEmBlocos(texto: string, limite: number): string[] {
   return blocos;
 }
 
-// Sintetiza um roteiro inteiro (pode passar do limite de ~5.000
-// caracteres por requisição), concatenando os blocos de áudio MP3.
-// Concatenação simples de MP3 (sem re-encode) — suficiente para
-// reprodução sequencial; se algum player tiver problema de clique
-// entre blocos, revisitar com ffmpeg (já disponível via Remotion).
+// Sintetiza um roteiro inteiro, concatenando os blocos de áudio MP3.
+// Concatenação simples (sem re-encode) — revisitar com ffmpeg (já
+// disponível via Remotion) se algum player tiver problema de clique
+// entre blocos.
 export async function sintetizarRoteiro(textoCompleto: string): Promise<Buffer> {
   const blocos = dividirEmBlocos(textoCompleto, LIMITE_CARACTERES_POR_REQUISICAO);
-  const audios = await Promise.all(blocos.map(sintetizarBloco));
+  const audios: Buffer[] = [];
+  for (const bloco of blocos) {
+    audios.push(await sintetizarBloco(bloco));
+  }
   return Buffer.concat(audios);
 }

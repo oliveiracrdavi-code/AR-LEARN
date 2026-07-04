@@ -6,9 +6,12 @@ o trabalho do tablet no PC (ou vice-versa).
 ## Fase atual
 **Fase 2 (Geração dos 3 ativos) — PDF e mapa mental validados com
 conteúdo real; videoaula com composição pronta, mas BLOQUEADA por
-falta da credencial Google Cloud TTS (não inventada, aguardando o
-usuário).** Ingestão real do YouTube (Fase 1) segue pendente das
-credenciais OAuth, sem data marcada — não bloqueia o resto.
+falta da credencial Cloudflare Workers AI (não inventada, aguardando o
+usuário).** Voz trocada de Google Cloud TTS para Cloudflare Workers AI
+(MeloTTS) em 2026-07-04 — suporte a pt-BR ainda não confirmado na
+prática, ver `docs/historico.md`. Ingestão real do YouTube (Fase 1)
+segue pendente das credenciais OAuth, sem data marcada — não bloqueia
+o resto.
 
 ## Ambiente
 - Node.js 22, npm 10
@@ -85,18 +88,25 @@ credenciais OAuth, sem data marcada — não bloqueia o resto.
 - [x] Composição Remotion (`remotion/src/`): título + cenas a partir de
       `video_roteiro`, schema zod pras props, `audioSrc` opcional
       (sem ele, renderiza mudo — nunca voz substituta)
-- [ ] **Narração (Google Cloud TTS) — BLOQUEADA**: código pronto em
-      `lib/tts/` (JWT de service account via `node:crypto`, sem SDK),
-      mas `GOOGLE_CLOUD_TTS_CREDENTIALS_JSON` não está configurada em
-      lugar nenhum. Não invocado. Aguardando o usuário trazer a
-      credencial ou decidir um teste mecânico (mudo) intermediário
+- [x] Render mecânico (sem áudio) rodado localmente: 535,06s (bate com
+      5s intro + 530s de cenas), 1920x1080/30fps, áudio confirmado
+      100% silêncio via `ffmpeg silencedetect` (não é narração falsa)
+- [ ] **Narração (Cloudflare Workers AI, MeloTTS) — BLOQUEADA**: código
+      pronto em `lib/tts/sintetizar.ts` (fetch puro, sem SDK), mas
+      `CLOUDFLARE_API_TOKEN`/`CLOUDFLARE_ACCOUNT_ID` não configuradas em
+      lugar nenhum. Não invocado. **Risco em aberto**: documentação do
+      MeloTTS não lista português como idioma suportado — a validar
+      com a API real quando as credenciais chegarem (ver
+      `docs/historico.md`). Código antigo do Google Cloud TTS movido
+      pra `lib/tts/obsoleto/`, não apagado
 - [ ] Render completo da videoaula (com narração) via
       `.github/workflows/render-video-temp.yml` (criado, não disparado)
 
 ## O que falta (próximas fases)
 - Rodar as migrations num projeto Supabase real (ainda não provisionado)
 - Rodar o teste real da Fase 1 com credenciais válidas
-- Trazer a credencial Google Cloud TTS e concluir a videoaula da Fase 2
+- Trazer as credenciais do Cloudflare Workers AI e confirmar suporte a
+  pt-BR (ou trocar de novo, se não suportar) pra concluir a videoaula
 - Auth (sessão de usuário nas rotas de `app/(members)`)
 - Landing dobra-a-dobra e identidade visual "Ouro & Concreto" (cores e
   componentes exatos ainda por confirmar com o usuário)
@@ -113,7 +123,7 @@ Transcrição fallback: `GROQ_API_KEY`
 Geração de conteúdo: `OPENROUTER_API_KEY`
 Mapa mental: `KROKI_URL` (valor de exemplo já preenchido:
 `https://kroki.io`, instância pública, sem conta/chave)
-Voz: `GOOGLE_CLOUD_TTS_CREDENTIALS_JSON`
+Voz: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`
 Pagamento: `MERCADOPAGO_ACCESS_TOKEN`, `MERCADOPAGO_WEBHOOK_SECRET`,
 `ASAAS_API_KEY`
 App: `NEXT_PUBLIC_SITE_URL`

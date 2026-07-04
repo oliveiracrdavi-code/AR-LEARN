@@ -52,6 +52,20 @@ código — schema da Fase 0 não muda):
 - Polimento visual (animações, render 3D) é prompt separado, enviado
   depois que a vitrine básica funcionar — não adiantar.
 
+## Troca de ferramenta de voz (decisão explícita, não desvio silencioso)
+Voz trocada de Google Cloud TTS para Cloudflare Workers AI (MeloTTS) em
+2026-07-04. Motivo: Google Cloud exigia conta de faturamento com
+verificação de identidade/CPF, que travou o uso na prática; Cloudflare
+já é conta existente (mesma do Pages), tier gratuito de 10.000
+neurons/dia, sem cartão, licença MIT. **Risco em aberto**: a
+documentação oficial do MeloTTS (Cloudflare e o repositório
+myshell-ai) não lista português entre os idiomas suportados — só
+inglês, espanhol, francês, chinês, japonês e coreano — e há relato da
+comunidade de que nem o espanhol funciona direito. Só será confirmado
+com uma chamada real, quando as credenciais (`CLOUDFLARE_API_TOKEN`,
+`CLOUDFLARE_ACCOUNT_ID`) chegarem. Se não suportar pt-BR de verdade,
+essa decisão volta à mesa — ver `docs/historico.md`.
+
 ## Hierarquia entre documentos
 O documento "System Prompt NotebookLM" (produto/design/landing/área de
 membros) continua válido, exceto na seção de pipeline/esteira de produção,
