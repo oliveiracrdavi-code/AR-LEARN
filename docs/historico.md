@@ -114,3 +114,22 @@ Não é carregado por padrão em cada sessão.
   o volume real por tema. Não muda nada no código agora.
 - Escopo confirmado: isso é Fase 4. Não adiantado nada de UI/login
   agora — seguimos na Fase 1.
+
+## 2026-07-03 — Ambiente com acesso de rede Full para APIs externas
+- Davi criou um ambiente novo com "network access = Full" (a UI só
+  oferece Trusted/None/Full, não dá pra restringir a domínios
+  específicos), incluindo `openrouter.ai` e `api.groq.com`.
+- Reteste do cérebro isolado **nesta sessão**: mesmo erro de antes
+  (`403 Host not in allowlist: openrouter.ai`). A política de rede de
+  um ambiente parece ser fixada na criação da sessão/container — esta
+  sessão já estava rodando antes do ambiente novo existir, então
+  provavelmente continua presa à política antiga. Para valer, este
+  teste precisa rodar numa sessão nova, aberta já dentro do ambiente
+  "AR-LEARN com API externa" (Full).
+- **Decisão registrada**: a partir de agora, o projeto usa dois
+  ambientes conforme a tarefa —
+  - **Default**: sessões que só mexem em código (sem chamar
+    OpenRouter/Groq/YouTube ao vivo) continuam aqui normalmente.
+  - **AR-LEARN com API externa (Full)**: obrigatório para qualquer
+    sessão que precise chamar OpenRouter, Groq ou a YouTube Data API
+    de verdade (testes ponta a ponta da esteira, Fases 1 e além).
