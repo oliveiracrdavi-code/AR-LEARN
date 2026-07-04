@@ -12,8 +12,15 @@ jobs:
   testar-cerebro:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout (branch de trabalho, com o projeto completo)
+        # O arquivo do workflow precisa existir no branch main pro
+        # workflow_dispatch aparecer na aba Actions, mas main não tem o
+        # projeto (package.json, lib/, scripts/) — só a branch de
+        # trabalho tem. Por isso o checkout aponta explicitamente pra
+        # ela, em vez de usar o ref que disparou o workflow.
         uses: actions/checkout@v4
+        with:
+          ref: claude/ar-learn-platform-setup-63c3tl
 
       - name: Configurar Node.js
         uses: actions/setup-node@v4
