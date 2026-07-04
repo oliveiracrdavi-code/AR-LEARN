@@ -282,19 +282,19 @@ Não é carregado por padrão em cada sessão.
 ## 2026-07-04 — Vitrine da spec, retry de duração e testes de ingestão com mock
 - **Vitrine Netflix**: detalhes registrados em `docs/regras.md` (ver
   seção correspondente) — nada implementado, é Fase 4.
-- **Confirmação do retry de duração (420s)**: disparado o workflow de
-  novo com a transcrição sintética. Resultado real: o cérebro tentou 3
-  vezes, e a duração *de fato subiu a cada tentativa* — a última
-  tentativa chegou a 384s (contra ~60s da rodada anterior, antes do
-  piso subir pra 420s), mas ainda ficou abaixo do novo piso. Como
-  esperado, o código não aceitou o resultado curto e lançou erro em vez
-  de aceitar silenciosamente — é o comportamento correto (falhar com
-  clareza), não um bug. Isso é esperado justamente porque a transcrição
-  de teste é sintética e curtíssima (um parágrafo) — sem inventar fatos,
-  não dá pra esticar pra 7 min de conteúdo real. Deve se resolver
-  naturalmente com transcrições de episódios reais, bem mais longas.
-  Adicionado log por tentativa em `gerarLearn.ts` (`[tentativa N]
-  duração do roteiro: Xs`) pra facilitar esse diagnóstico no futuro.
+- **Confirmação do retry de duração (420s)**: adicionado log por
+  tentativa em `gerarLearn.ts` (`[tentativa N] duração do roteiro: Xs`)
+  e disparado o workflow 2x pra confirmar. Números reais, por
+  tentativa, na rodada com log: **tentativa 1 = 75s → tentativa 2 =
+  330s → tentativa 3 = 395s**. Confirma que o retry funciona de
+  verdade (sobe a cada tentativa, não é só documentação sem efeito),
+  mas ainda ficou abaixo do piso de 420s depois de 3 tentativas — o
+  código corretamente rejeitou o resultado e lançou erro, em vez de
+  aceitar um vídeo curto demais (falhar com clareza, não é bug). Isso é
+  esperado: a transcrição de teste é sintética e curtíssima (um
+  parágrafo) — sem inventar fatos, não dá pra esticar pra 7 min de
+  conteúdo real. Deve se resolver naturalmente com transcrições de
+  episódios reais, bem mais longas.
 - **Testes de ingestão do YouTube com mock** (sem rede real, sem
   credenciais): criado `scripts/testar-youtube-mock.ts`
   (`npm run youtube:teste`). Simula respostas da API (channels,
