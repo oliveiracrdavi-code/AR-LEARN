@@ -7,6 +7,8 @@
 // pública do Kroki trava o fetch indefinidamente (sem erro, sem log) —
 // aconteceu de verdade em CI (2x) depois que passamos a chamar essa
 // função duas vezes por fixture, SVG e PNG.
+import { logComTimestamp } from "../util/log";
+
 const TIMEOUT_MS = 30_000;
 
 export async function renderizarMapaMentalKroki(
@@ -17,6 +19,7 @@ export async function renderizarMapaMentalKroki(
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
+  logComTimestamp(`Chamando Kroki (${formato})...`);
   let res: Response;
   try {
     res = await fetch(`${base}/mermaid/${formato}`, {
@@ -27,6 +30,7 @@ export async function renderizarMapaMentalKroki(
     });
   } catch (erro) {
     if (erro instanceof Error && erro.name === "AbortError") {
+      logComTimestamp(`Kroki (${formato}) não respondeu em ${TIMEOUT_MS / 1000}s.`);
       throw new Error(`Kroki não respondeu em ${TIMEOUT_MS / 1000}s (formato: ${formato}).`);
     }
     throw erro;
@@ -38,6 +42,7 @@ export async function renderizarMapaMentalKroki(
     throw new Error(`Kroki falhou: ${res.status} ${await res.text()}`);
   }
 
+  logComTimestamp(`Resposta do Kroki (${formato}) recebida.`);
   const arrayBuffer = await res.arrayBuffer();
   return Buffer.from(arrayBuffer);
 }

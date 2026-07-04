@@ -692,3 +692,27 @@ Não é carregado por padrão em cada sessão.
   diagnóstico (`ls -la public/`) antes do render, pra confirmar no log
   que o arquivo existe e tem o tamanho esperado antes de qualquer nova
   tentativa.
+- **7ª tentativa — travou de novo no mesmo step de fixture (~8+ min).**
+  Antes de tentar de novo, Davi pediu pra confirmar se o timeout do
+  Kroki cobria a chamada do OpenRouter usada nesse mesmo step — **não
+  cobria**: são duas chamadas de rede totalmente separadas
+  (`chamarOpenRouter` em `lib/openrouter/gerarLearn.ts` e
+  `renderizarMapaMentalKroki` em `lib/mapa-mental/kroki.ts`), e só a
+  do Kroki tinha timeout. `chamarOpenRouter` nunca teve nenhuma
+  proteção contra o fetch nunca resolver — explica o hang de 8+ min
+  (bem além do que o timeout do Kroki, sozinho, permitiria).
+  - **Corrigido**: `chamarOpenRouter` agora tem timeout de 30s
+    (`AbortController`, mesmo padrão do Kroki e do Edge TTS), e o
+    timeout vira `ErroTransiente` — automaticamente retentado pelo
+    loop de `MAX_TENTATIVAS` que já existia (backoff exponencial:
+    2s/4s/8s entre tentativas).
+  - **Logging com timestamp adicionado em cada chamada de rede
+    individual** do fluxo (pedido explícito de Davi, pra saber
+    exatamente qual serviço travou se acontecer de novo): novo helper
+    `lib/util/log.ts` (`logComTimestamp`), usado em
+    `chamarOpenRouter` ("Chamando OpenRouter...", "Resposta do
+    OpenRouter recebida.") e em `renderizarMapaMentalKroki`
+    ("Chamando Kroki (svg/png)...", "Resposta do Kroki (svg/png)
+    recebida."). Deliberadamente NÃO foi adicionado nenhum timeout
+    genérico de step/processo inteiro — cada chamada individual falha
+    rápido (30s) por conta própria.

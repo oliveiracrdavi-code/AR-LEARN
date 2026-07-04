@@ -9,6 +9,7 @@
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { gerarLearnDoEpisodio } from "../lib/openrouter/gerarLearn";
 import { renderizarMapaMentalKroki } from "../lib/mapa-mental/kroki";
+import { logComTimestamp } from "../lib/util/log";
 
 async function main() {
   const transcricao = await readFile(
@@ -16,7 +17,7 @@ async function main() {
     "utf-8"
   );
 
-  console.log("Chamando o cérebro com a transcrição de mercado imobiliário...");
+  logComTimestamp("Iniciando geração do fixture (cérebro OpenRouter + mapa mental Kroki)...");
   const learn = await gerarLearnDoEpisodio(transcricao, {
     videoId: "FIXTURE_MERCADO_IMOBILIARIO",
     titulo: "Como funciona o mercado imobiliário",
@@ -36,7 +37,6 @@ async function main() {
   console.log("Duração total:", duracaoTotal, "s");
   console.log("JSON salvo em:", caminhoJson);
 
-  console.log("Renderizando o mapa mental via Kroki...");
   const svgBuffer = await renderizarMapaMentalKroki(learn.learn.mapa_mental_mermaid, "svg");
   const caminhoSvg = "scripts/output/fixture-mercado-imobiliario-mapa.svg";
   await writeFile(caminhoSvg, svgBuffer);

@@ -1,5 +1,6 @@
 import { learnContratoSchema, type LearnContrato } from "./schema";
 import { SYSTEM_PROMPT_CEREBRO } from "./systemPrompt";
+import { logComTimestamp } from "../util/log";
 
 // Modelo barato via OpenRouter (Manual das Ferramentas, seção 5).
 // Configurável por env var pra trocar sem tocar em código.
@@ -11,6 +12,13 @@ import { SYSTEM_PROMPT_CEREBRO } from "./systemPrompt";
 // no manual.
 const MODELO_BARATO = process.env.OPENROUTER_MODEL || "google/gemini-2.5-flash";
 const MAX_TENTATIVAS = 3;
+
+// Timeout curto e explícito por chamada — sem isso, uma instabilidade
+// pontual do OpenRouter (fetch nunca resolve) trava o step inteiro por
+// tempo indefinido em vez de falhar rápido e de forma identificável.
+// Vira ErroTransiente, então é retentado pelo loop de MAX_TENTATIVAS
+// como qualquer outro 429/5xx.
+const TIMEOUT_MS = 30_000;
 
 // Duração mínima do vídeo (Regra de Ouro do projeto — CLAUDE.md /
 // docs/stack.md). Atualizado de 300s (5 min) para 420s (7 min).
@@ -25,19 +33,35 @@ async function esperar(ms: number) {
 }
 
 async function chamarOpenRouter(mensagens: Mensagem[]): Promise<string> {
-  const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: MODELO_BARATO,
-      messages: mensagens,
-      response_format: { type: "json_object" },
-      temperature: 0.4,
-    }),
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
+
+  logComTimestamp("Chamando OpenRouter...");
+  let res: Response;
+  try {
+    res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: MODELO_BARATO,
+        messages: mensagens,
+        response_format: { type: "json_object" },
+        temperature: 0.4,
+      }),
+      signal: controller.signal,
+    });
+  } catch (erro) {
+    if (erro instanceof Error && erro.name === "AbortError") {
+      logComTimestamp(`OpenRouter não respondeu em ${TIMEOUT_MS / 1000}s.`);
+      throw new ErroTransiente(`OpenRouter não respondeu em ${TIMEOUT_MS / 1000}s.`);
+    }
+    throw erro;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 
   if (res.status === 429 || res.status >= 500) {
     throw new ErroTransiente(`OpenRouter ${res.status}: ${await res.text()}`);
@@ -46,6 +70,7 @@ async function chamarOpenRouter(mensagens: Mensagem[]): Promise<string> {
     throw new Error(`OpenRouter falhou: ${res.status} ${await res.text()}`);
   }
 
+  logComTimestamp("Resposta do OpenRouter recebida.");
   const json = (await res.json()) as {
     choices: { message: { content: string } }[];
   };
