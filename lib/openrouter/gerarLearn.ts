@@ -81,6 +81,8 @@ export async function gerarLearnDoEpisodio(
           0
         );
 
+        console.log(`  [tentativa ${tentativa}] duração do roteiro: ${duracaoTotal}s (piso: ${DURACAO_MINIMA_SEG}s)`);
+
         if (duracaoTotal >= DURACAO_MINIMA_SEG) {
           return validado.data;
         }
