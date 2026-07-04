@@ -1,0 +1,33 @@
+# Workflow TEMPORÁRIO de verificação — não faz parte da esteira autônoma.
+# Existe só para validar OpenRouter + Groq a partir do ambiente real de
+# execução (GitHub Actions), já que a sandbox de desenvolvimento tem uma
+# restrição de rede de plataforma que bloqueia esses hosts. Apagar este
+# arquivo depois que o teste confirmar que está tudo certo.
+name: "[Temporário] Teste do cérebro (OpenRouter + Groq)"
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  testar-cerebro:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Validar o schema do contrato JSON (offline)
+        run: npm run schema:teste
+
+      - name: Testar o cérebro isolado (OpenRouter, com fallback Groq configurado)
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+        run: npx tsx scripts/testar-cerebro-isolado.ts

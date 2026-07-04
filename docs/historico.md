@@ -153,3 +153,24 @@ Não é carregado por padrão em cada sessão.
   configuração de egress mais granular, abrir chamado com o suporte do
   Claude Code on the web, ou rodar este teste específico fora deste
   sandbox (ex.: no PC, fase de migração tablet→PC).
+
+## 2026-07-03 — Mudança de estratégia: validar via GitHub Actions
+- Davi aceitou o diagnóstico (limitação de plataforma da sandbox, fora
+  do controle dele) e decidiu não insistir na rede da sessão de
+  desenvolvimento.
+- **Nova estratégia, não é desvio do plano**: as chamadas reais a
+  OpenRouter/Groq em produção já rodariam via GitHub Actions/Edge
+  Functions, nunca dentro da sandbox de desenvolvimento — então validar
+  por ali é validar o ambiente de execução real, não um atalho.
+- Criado `.github/workflows/teste-cerebro.yml` — workflow **temporário**
+  (apagar depois de confirmado), disparado manualmente
+  (`workflow_dispatch`), que roda `schema:teste` (offline) e depois
+  `scripts/testar-cerebro-isolado.ts` com `OPENROUTER_API_KEY` e
+  `GROQ_API_KEY` vindos de GitHub Secrets — não de `.env`.
+- Nota técnica: o workflow chama `npx tsx scripts/testar-cerebro-isolado.ts`
+  diretamente, em vez do script npm `cerebro:teste` (que usa
+  `--env-file=.env.local`, arquivo que não existe nem deve existir em
+  CI — os secrets já chegam como variável de ambiente pelo `env:` do
+  job).
+- Aguardando: Davi cadastrar os 2 secrets no GitHub e disparar o
+  workflow manualmente; eu reviso os logs quando ele avisar.
