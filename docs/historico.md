@@ -174,3 +174,18 @@ Não é carregado por padrão em cada sessão.
   job).
 - Aguardando: Davi cadastrar os 2 secrets no GitHub e disparar o
   workflow manualmente; eu reviso os logs quando ele avisar.
+
+- **Descoberta**: o commit do workflow (`67caf06`) estava certo e no ar
+  na branch de trabalho, mas o GitHub Actions não o listava — API
+  confirmou `total_count: 0` workflows indexados. Causa raiz: o
+  `workflow_dispatch` só aparece na aba Actions/`Run workflow` quando o
+  arquivo do workflow existe no branch **padrão** (`main`); `main`
+  ainda estava só no commit inicial, sem nada do trabalho da Fase 0/1.
+- Solução aplicada: criado um branch isolado
+  (`temp-teste-cerebro-workflow`, baseado em `origin/main`) contendo
+  **só** `.github/workflows/teste-cerebro.yml` — não o restante do
+  trabalho de Fase 0/1, que continua sem merge, aguardando aprovação
+  por fase. Aberto o PR:
+  https://github.com/oliveiracrdavi-code/AR-LEARN/pull/1
+- Aguardando: Davi mergear esse PR, cadastrar os 2 secrets e disparar o
+  workflow manualmente.
