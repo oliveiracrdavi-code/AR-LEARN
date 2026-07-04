@@ -1,7 +1,12 @@
-# Workflow TEMPORÁRIO — teste ISOLADO do TTS (Cloudflare Workers AI /
-# MeloTTS): só "texto em português -> áudio", antes de plugar no
-# pipeline inteiro. Não faz parte da esteira autônoma.
-name: "[Temporário] Teste isolado do TTS (Cloudflare)"
+# Workflow TEMPORÁRIO — teste ISOLADO do TTS (Edge TTS / msedge-tts,
+# serviço "Read Aloud" do Microsoft Edge): só "texto em português ->
+# áudio", antes de plugar no pipeline inteiro. Não faz parte da esteira
+# autônoma.
+#
+# Histórico: este workflow já testou Google Cloud TTS (descartado por
+# fricção de billing/CPF) e Cloudflare Workers AI/MeloTTS (testado,
+# REPROVADO — misturava fonética de outro idioma). Ver docs/historico.md.
+name: "[Temporário] Teste isolado do TTS (Edge TTS)"
 
 on:
   workflow_dispatch: {}
@@ -23,14 +28,11 @@ jobs:
       - name: Instalar dependências
         run: npm ci
 
-      - name: Testar TTS isolado (Cloudflare Workers AI, MeloTTS)
-        env:
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        run: npx tsx scripts/testar-tts-isolado.ts
+      - name: Testar TTS isolado (Edge TTS, msedge-tts)
+        run: npx tsx scripts/testar-tts-edge-isolado.ts
 
       - name: Upload do áudio gerado
         uses: actions/upload-artifact@v4
         with:
-          name: teste-tts-cloudflare-pt
-          path: scripts/output/teste-tts-cloudflare-pt.mp3
+          name: teste-tts-edge-pt
+          path: scripts/output/teste-tts-edge-pt.mp3
