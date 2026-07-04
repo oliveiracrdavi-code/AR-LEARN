@@ -13,6 +13,7 @@
     "youtube:teste": "tsx scripts/testar-youtube-mock.ts",
     "fixture:teste": "tsx --env-file=.env.local scripts/gerar-fixture-real.ts",
     "tts-edge:teste": "tsx scripts/testar-tts-edge-isolado.ts",
+    "tts-edge-masculinas:teste": "tsx scripts/testar-tts-edge-vozes-masculinas.ts",
     "remotion:props": "tsx scripts/preparar-props-remotion.ts",
     "remotion:render": "remotion render remotion/src/index.ts LearnVideo scripts/output/video.mp4 --props=scripts/output/remotion-props.json"
   },

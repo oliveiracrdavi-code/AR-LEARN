@@ -5,7 +5,11 @@
 #
 # Histórico: este workflow já testou Google Cloud TTS (descartado por
 # fricção de billing/CPF) e Cloudflare Workers AI/MeloTTS (testado,
-# REPROVADO — misturava fonética de outro idioma). Ver docs/historico.md.
+# REPROVADO — misturava fonética de outro idioma). Voz feminina
+# pt-BR-FranciscaNeural (Edge TTS) já aprovada por ouvido. Job
+# "testar-vozes-masculinas" compara 3 candidatas masculinas (perfil
+# Leandro Carozzo) — decisão ainda pendente do usuário. Ver
+# docs/historico.md.
 name: "[Temporário] Teste isolado do TTS (Edge TTS)"
 
 on:
@@ -36,3 +40,40 @@ jobs:
         with:
           name: teste-tts-edge-pt
           path: scripts/output/teste-tts-edge-pt.mp3
+
+  testar-vozes-masculinas:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (branch de trabalho, com o projeto completo)
+        uses: actions/checkout@v4
+        with:
+          ref: claude/ar-learn-platform-setup-63c3tl
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Testar 3 vozes masculinas candidatas (Edge TTS, msedge-tts)
+        run: npx tsx scripts/testar-tts-edge-vozes-masculinas.ts
+
+      - name: Upload — pt-BR-AntonioNeural
+        uses: actions/upload-artifact@v4
+        with:
+          name: teste-tts-edge-pt-BR-AntonioNeural
+          path: scripts/output/teste-tts-edge-pt-BR-AntonioNeural.mp3
+
+      - name: Upload — pt-BR-HumbertoNeural
+        uses: actions/upload-artifact@v4
+        with:
+          name: teste-tts-edge-pt-BR-HumbertoNeural
+          path: scripts/output/teste-tts-edge-pt-BR-HumbertoNeural.mp3
+
+      - name: Upload — pt-BR-DonatoNeural
+        uses: actions/upload-artifact@v4
+        with:
+          name: teste-tts-edge-pt-BR-DonatoNeural
+          path: scripts/output/teste-tts-edge-pt-BR-DonatoNeural.mp3
