@@ -1,4 +1,4 @@
-import { AbsoluteFill, Audio, Sequence, useVideoConfig } from "remotion";
+import { AbsoluteFill, Audio, Sequence, staticFile, useVideoConfig } from "remotion";
 import { z } from "zod";
 
 const cenaVideoSchema = z.object({
@@ -14,8 +14,14 @@ export const learnVideoPropsSchema = z.object({
   trilha: z.string(),
   modulo: z.string(),
   cenas: z.array(cenaVideoSchema),
-  // Caminho/URL do áudio de narração já sintetizado (Edge TTS, voz
-  // oficial pt-BR-AntonioNeural). Sem isso, o vídeo renderiza mudo —
+  // Nome do arquivo de áudio da narração já sintetizada (Edge TTS, voz
+  // oficial pt-BR-AntonioNeural), dentro da pasta public/ — resolvido
+  // com staticFile() dentro do componente (não no script que prepara
+  // as props: staticFile() só calcula o prefixo certo quando chamado
+  // em contexto de navegador, que é onde o Remotion de fato renderiza;
+  // chamado num script Node puro, cai num fallback sem prefixo que não
+  // bate com onde o bundler realmente copia a pasta public/). Também
+  // aceita uma URL http(s) direta. Sem isso, o vídeo renderiza mudo —
   // nunca com uma voz substituta.
   audioSrc: z.string().optional(),
 });
@@ -88,14 +94,20 @@ export function LearnVideo({ titulo, trilha, modulo, cenas, audioSrc }: LearnVid
   const frameInicioCenas = Math.round(DURACAO_INTRO_SEG * fps);
   let frameAtual = frameInicioCenas;
 
+  const audioResolvido = audioSrc
+    ? audioSrc.startsWith("http://") || audioSrc.startsWith("https://")
+      ? audioSrc
+      : staticFile(audioSrc)
+    : undefined;
+
   return (
     <AbsoluteFill>
-      {audioSrc ? (
+      {audioResolvido ? (
         // A narração começa junto da primeira cena, não do card de
         // título (que não tem texto narrado) — sem isso, áudio e vídeo
         // saem 5s fora de sincronia.
         <Sequence from={frameInicioCenas}>
-          <Audio src={audioSrc} />
+          <Audio src={audioResolvido} />
         </Sequence>
       ) : null}
 

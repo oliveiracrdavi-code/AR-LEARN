@@ -716,3 +716,39 @@ Não é carregado por padrão em cada sessão.
     recebida."). Deliberadamente NÃO foi adicionado nenhum timeout
     genérico de step/processo inteiro — cada chamada individual falha
     rápido (30s) por conta própria.
+- **8ª tentativa — desta vez NÃO foi um hang, foi um engano meu.** O
+  step "Gerar fixture real" completou rápido (fixture, PDF, narração,
+  props e o diagnóstico `ls -la public/` todos com sucesso, o áudio
+  confirmado presente em `public/narracao-fixture.mp3` com o tamanho
+  certo) — só que a API de status do GitHub Actions mostrou esse step
+  como "in_progress" por tempo suficiente pra eu concluir (errado) que
+  tinha travado de novo, e cancelei a execução no meio do passo de
+  narração, que estava rodando normalmente. Confirmado lendo o log
+  completo do job cancelado: todos os marcadores de conteúdo
+  apareciam. **Corrigido o processo, não o código**: reaprendida a
+  lição de não confiar só no status da API sem checar o log real antes
+  de cancelar.
+  - Resultado real dessa rodada: o pipeline chegou até o render do
+    Remotion pela primeira vez (passou de todos os problemas
+    anteriores) — e falhou de novo com o MESMO erro 404 no áudio, mesmo
+    com `--public-dir` explícito e o arquivo confirmado presente no
+    `ls -la public/` logo antes do comando de render.
+  - **Causa raiz de verdade, encontrada lendo o código-fonte do
+    Remotion (`node_modules/@remotion/bundler/dist/bundle.js` e
+    `node_modules/remotion/dist/cjs/static-file.js`)**: `staticFile()`
+    calcula o prefixo certo do caminho usando uma variável global do
+    navegador (`window.remotion_staticBase`) — que só existe quando o
+    código roda de fato DENTRO do Chrome que o Remotion usa pra
+    renderizar. Chamado num script Node puro (nosso
+    `preparar-props-remotion.ts`, sem `window`), `staticFile()` cai
+    num fallback silencioso que devolve só `/nome-do-arquivo`, sem
+    prefixo — e esse caminho sem prefixo não bate com o lugar onde o
+    bundler do Remotion realmente copia a pasta `public/`
+    (`outDir/public/`, confirmado lendo `bundle.js`). Resultado: 404,
+    mesmo com o arquivo existindo no disco no lugar certo.
+  - **Corrigido de verdade**: `staticFile()` foi removido do script
+    (`preparar-props-remotion.ts` agora só manda o NOME do arquivo,
+    relativo a `public/`) e passou a ser chamado dentro do componente
+    React (`remotion/src/LearnVideo.tsx`), que roda de verdade no
+    navegador do Remotion — contexto onde `staticFile()` funciona
+    conforme documentado.
