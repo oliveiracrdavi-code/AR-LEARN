@@ -33,16 +33,54 @@ export const VOZ_OFICIAL = "pt-BR-AntonioNeural";
 // 13.272s nos dois métodos).
 const BITRATE_BPS = 96_000;
 
-async function sintetizarTexto(texto: string): Promise<Buffer> {
-  const tts = new MsEdgeTTS();
-  await tts.setMetadata(VOZ_OFICIAL, OUTPUT_FORMAT.AUDIO_24KHZ_96KBITRATE_MONO_MP3);
+// Timeout por cena + 1 retentativa: sem isso, uma instabilidade pontual
+// do WebSocket do Edge TTS (o stream nunca fecha) trava a síntese pra
+// sempre — aconteceu de verdade em CI. `tts.close()` no timeout evita
+// vazar a conexão websocket aberta.
+const TIMEOUT_MS = 45_000;
 
-  const { audioStream } = tts.toStream(texto);
-  const partes: Buffer[] = [];
-  for await (const parte of audioStream) {
-    partes.push(parte as Buffer);
+async function sintetizarTextoBruto(texto: string): Promise<Buffer> {
+  const tts = new MsEdgeTTS();
+  try {
+    await tts.setMetadata(VOZ_OFICIAL, OUTPUT_FORMAT.AUDIO_24KHZ_96KBITRATE_MONO_MP3);
+
+    const { audioStream } = tts.toStream(texto);
+    const partes: Buffer[] = [];
+    for await (const parte of audioStream) {
+      partes.push(parte as Buffer);
+    }
+    return Buffer.concat(partes);
+  } finally {
+    tts.close();
   }
-  return Buffer.concat(partes);
+}
+
+async function comTimeout<T>(promessa: Promise<T>, mensagemErro: string): Promise<T> {
+  let timeoutId: ReturnType<typeof setTimeout>;
+  const timeout = new Promise<never>((_resolve, reject) => {
+    timeoutId = setTimeout(() => reject(new Error(mensagemErro)), TIMEOUT_MS);
+  });
+  try {
+    return await Promise.race([promessa, timeout]);
+  } finally {
+    clearTimeout(timeoutId!);
+  }
+}
+
+async function sintetizarTexto(texto: string): Promise<Buffer> {
+  try {
+    return await comTimeout(
+      sintetizarTextoBruto(texto),
+      `Edge TTS não respondeu em ${TIMEOUT_MS / 1000}s (1ª tentativa).`
+    );
+  } catch {
+    // 1 retentativa — instabilidade pontual do WebSocket, não motivo
+    // pra desistir da síntese inteira.
+    return await comTimeout(
+      sintetizarTextoBruto(texto),
+      `Edge TTS não respondeu em ${TIMEOUT_MS / 1000}s (2ª tentativa, desistindo).`
+    );
+  }
 }
 
 export interface CenaNarrada {

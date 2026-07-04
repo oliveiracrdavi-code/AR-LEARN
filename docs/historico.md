@@ -663,3 +663,17 @@ Não é carregado por padrão em cada sessão.
   - **Corrigido**: `renderizarMapaMentalKroki` agora usa
     `AbortController` com timeout de 30s, lançando um erro claro
     (`Kroki não respondeu em 30s`) em vez de travar silenciosamente.
+- **5ª tentativa — mesmo padrão de trava, agora no step de síntese da
+  narração** (~10 min parado em vez de ~70s, confirmado por checagens
+  repetidas de status sem mudança nenhuma — não era atraso de
+  cache/API). Cancelei em vez de tentar de novo às cegas (3º travamento
+  distinto no dia) e investiguei.
+  - **Causa raiz**: mesmo padrão do bug do Kroki — `sintetizarTexto` em
+    `lib/tts/sintetizar.ts` também nunca teve timeout. O loop `for
+    await (const parte of audioStream)` fica esperando para sempre se o
+    WebSocket do Edge TTS (`msedge-tts`) tiver uma instabilidade
+    pontual numa cena específica e nunca fechar o stream.
+  - **Corrigido**: adicionado timeout de 45s por chamada + 1
+    retentativa automática (`comTimeout` com `Promise.race`), e
+    `tts.close()` no `finally` pra não vazar a conexão WebSocket em
+    caso de timeout.
