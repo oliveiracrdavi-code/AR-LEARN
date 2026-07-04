@@ -404,3 +404,20 @@ Não é carregado por padrão em cada sessão.
 - `.github/workflows/render-video-temp.yml`: workflow temporário
   criado (mesmo padrão do teste do cérebro), pronto pra rodar quando
   a credencial de TTS existir — **ainda não disparado**.
+- **Render mecânico concluído com sucesso** (local, sandbox, Chromium
+  headless_shell + compositor/ffmpeg embutido do Remotion):
+  `scripts/output/video-teste.mp4`, 16.050 frames, 34,6 MB,
+  **8min55s (535,06s)** — bate exatamente com o esperado (5s de intro +
+  530s de cenas do JSON real). 1920x1080, 30fps, h264. Confirmado via
+  `silencedetect` do ffmpeg que a trilha de áudio é **100% silêncio**
+  do início ao fim — não é uma narração falsa, é a ausência real de
+  áudio (o player só inclui uma faixa de áudio muda por padrão).
+- Frame de exemplo conferido visualmente: cena e texto narrado batem
+  com o roteiro do JSON. Observação de qualidade (não é bug): o texto
+  narrado que o LLM escreveu inclui o próprio nome "Leandro Carozzo"
+  se apresentando, e a descrição visual da cena o coloca "em estúdio"
+  — mesmo a transcrição de teste sendo genérica, sem nenhuma menção a
+  ele. Isso é a persona do system prompt sendo aplicada com força total;
+  em produção isso é o esperado (episódios reais são dele mesmo), mas
+  em testes com transcrição sintética/genérica isso pode soar como
+  "encenação" — vale ficar de olho quando rodar com episódios reais.
