@@ -4,10 +4,11 @@ Fatos e status do projeto. Sem narrativa — só o necessário para retomar
 o trabalho do tablet no PC (ou vice-versa).
 
 ## Fase atual
-**Fase 1 (Esteira mínima, 1 episódio) — cérebro validado de ponta a
-ponta (via GitHub Actions, com chaves reais); ingestão real do YouTube
-pendente das credenciais OAuth, sem data marcada (não bloqueia o resto).**
-Fase 0 aprovada. Não avançar para a Fase 2 sem aprovação explícita.
+**Fase 2 (Geração dos 3 ativos) — PDF e mapa mental validados com
+conteúdo real; videoaula com composição pronta, mas BLOQUEADA por
+falta da credencial Google Cloud TTS (não inventada, aguardando o
+usuário).** Ingestão real do YouTube (Fase 1) segue pendente das
+credenciais OAuth, sem data marcada — não bloqueia o resto.
 
 ## Ambiente
 - Node.js 22, npm 10
@@ -66,15 +67,41 @@ Fase 0 aprovada. Não avançar para a Fase 2 sem aprovação explícita.
       de OAuth, sem data marcada** (o usuário ainda não tem acesso de
       gerente ao canal); código já pronto pra recebê-las
 
+### Fase 2 — Geração dos 3 ativos
+- [x] Fixture de conteúdo real (não sintético):
+      `scripts/fixtures/transcricao-mercado-imobiliario.txt` (genérica,
+      sem dados da Carozzo) → JSON real gerado via cérebro em
+      `scripts/output/fixture-mercado-imobiliario.json` (gitignored):
+      530s de roteiro, 11 cenas, 7 seções de PDF
+- [x] Mapa mental: `lib/mapa-mental/kroki.ts` (imagem via Kroki),
+      `converter.ts` (Mermaid mindmap → markdown pro Markmap — formatos
+      diferentes, contrato usa um, o site usa outro) e `markmap.ts`
+      (validação estrutural). Validado com conteúdo real: 35 nós,
+      confirmado visualmente num Chromium headless (`npm run` via
+      `scripts/testar-mapa-mental-visual.ts`), zero erros
+- [x] PDF: `lib/pdf/gerarPdf.ts` (HTML → PDF via Playwright/Chromium,
+      sem serviço pago). Gerado com sucesso a partir do conteúdo real,
+      2 páginas, com o mapa mental embutido
+- [x] Composição Remotion (`remotion/src/`): título + cenas a partir de
+      `video_roteiro`, schema zod pras props, `audioSrc` opcional
+      (sem ele, renderiza mudo — nunca voz substituta)
+- [ ] **Narração (Google Cloud TTS) — BLOQUEADA**: código pronto em
+      `lib/tts/` (JWT de service account via `node:crypto`, sem SDK),
+      mas `GOOGLE_CLOUD_TTS_CREDENTIALS_JSON` não está configurada em
+      lugar nenhum. Não invocado. Aguardando o usuário trazer a
+      credencial ou decidir um teste mecânico (mudo) intermediário
+- [ ] Render completo da videoaula (com narração) via
+      `.github/workflows/render-video-temp.yml` (criado, não disparado)
+
 ## O que falta (próximas fases)
 - Rodar as migrations num projeto Supabase real (ainda não provisionado)
 - Rodar o teste real da Fase 1 com credenciais válidas
+- Trazer a credencial Google Cloud TTS e concluir a videoaula da Fase 2
 - Auth (sessão de usuário nas rotas de `app/(members)`)
 - Landing dobra-a-dobra e identidade visual "Ouro & Concreto" (cores e
   componentes exatos ainda por confirmar com o usuário)
 - Design system em `components/ui/`
-- Geração dos 3 ativos a partir do JSON (Fase 2)
-- Render Remotion via GitHub Actions (`.github/workflows/`)
+- Publicação no Supabase (Fase 3)
 - Integração de pagamento (Mercado Pago) — só na Fase 4
 
 ## Variáveis de ambiente (nomes — ver `.env.example`)
