@@ -2,7 +2,7 @@
 // português -> áudio", direto no endpoint, antes de plugar no pipeline
 // inteiro. Não usa lib/tts/sintetizar.ts de propósito — quero ver o
 // resultado bruto da API primeiro.
-import { writeFile } from "node:fs/promises";
+import { writeFile, mkdir } from "node:fs/promises";
 
 const TEXTO_TESTE =
   "Olá! Este é um teste de voz em português brasileiro, usando o Cloudflare Workers AI. " +
@@ -45,10 +45,14 @@ async function main() {
   }
 
   const audioBuffer = Buffer.from(json.result.audio, "base64");
+  await mkdir("scripts/output", { recursive: true });
   const caminho = "scripts/output/teste-tts-cloudflare-pt.mp3";
   await writeFile(caminho, audioBuffer);
 
   console.log("OK — áudio salvo em:", caminho, `(${audioBuffer.length} bytes)`);
+  console.log("===AUDIO_BASE64_START===");
+  console.log(json.result.audio);
+  console.log("===AUDIO_BASE64_END===");
 }
 
 main().catch((erro) => {
