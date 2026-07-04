@@ -77,7 +77,15 @@ export async function gerarPdfDoLearn(
 ): Promise<void> {
   const html = construirHtml(learn, opcoes?.mapaMentalSvg);
 
-  const browser = await chromium.launch();
+  // Usa o Chromium já pré-instalado no ambiente de dev (evita tentar
+  // baixar uma revisão nova, que não teria acesso de rede pra isso).
+  // Em produção/CI, sem essa env var, o Playwright usa a revisão que
+  // ele mesmo baixar normalmente.
+  const browser = await chromium.launch(
+    process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE
+      ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE }
+      : undefined
+  );
   try {
     const page = await browser.newPage();
     await page.setContent(html, { waitUntil: "networkidle" });
