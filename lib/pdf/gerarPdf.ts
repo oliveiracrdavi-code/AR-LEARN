@@ -13,7 +13,13 @@ function escaparHtml(texto: string): string {
 
 // Estilo provisório, só funcional (Regra combinada: paleta final e
 // polimento visual ficam para o prompt de design, mais à frente).
-function construirHtml(learn: Learn, mapaMentalSvg?: string): string {
+//
+// O PDF contém só o conteúdo textual do resumo (gancho, seções, erros
+// comuns, checklist, fechamento) — o mapa mental é um ativo TOTALMENTE
+// separado (Markmap interativo + imagem via Kroki), nunca embutido
+// aqui. Ajuste explícito de Davi em 2026-07-04: cada ativo (PDF, mapa
+// mental, vídeo) é sua própria seção/link na tela do Learn.
+function construirHtml(learn: Learn): string {
   const secoesHtml = learn.pdf.secoes
     .map(
       (secao) => `
@@ -46,8 +52,6 @@ function construirHtml(learn: Learn, mapaMentalSvg?: string): string {
   h3 { font-size: 15px; margin-bottom: 6px; }
   ul { font-size: 13px; line-height: 1.5; }
   .fechamento { margin-top: 24px; font-weight: bold; }
-  .mapa { margin: 24px 0; text-align: center; }
-  .mapa img, .mapa svg { max-width: 100%; }
 </style>
 </head>
 <body>
@@ -63,19 +67,13 @@ function construirHtml(learn: Learn, mapaMentalSvg?: string): string {
   <h3>Checklist</h3>
   <ul>${checklistHtml}</ul>
 
-  ${mapaMentalSvg ? `<div class="mapa">${mapaMentalSvg}</div>` : ""}
-
   <p class="fechamento">${escaparHtml(learn.pdf.fechamento)}</p>
 </body>
 </html>`;
 }
 
-export async function gerarPdfDoLearn(
-  learn: Learn,
-  caminhoSaida: string,
-  opcoes?: { mapaMentalSvg?: string }
-): Promise<void> {
-  const html = construirHtml(learn, opcoes?.mapaMentalSvg);
+export async function gerarPdfDoLearn(learn: Learn, caminhoSaida: string): Promise<void> {
+  const html = construirHtml(learn);
 
   // Usa o Chromium já pré-instalado no ambiente de dev (evita tentar
   // baixar uma revisão nova, que não teria acesso de rede pra isso).

@@ -18,9 +18,20 @@
 // no render Remotion via GitHub Actions, fora da árvore do Next.js
 // (mesmo motivo registrado pros outros módulos de pipeline na Fase 1).
 import { MsEdgeTTS, OUTPUT_FORMAT } from "msedge-tts";
-import { parseBuffer } from "music-metadata";
 
 export const VOZ_OFICIAL = "pt-BR-AntonioNeural";
+
+// Bitrate fixo do formato escolhido (AUDIO_24KHZ_96KBITRATE_MONO_MP3) —
+// usado pra medir a duração real do áudio por matemática de bitrate
+// constante (bytes*8/bitrate), em vez de sniffing de MIME-type
+// (tentamos com a lib music-metadata, mas ela falhou de forma
+// inconsistente em CI — "Guessed MIME-type not supported: audio/mpeg"
+// mesmo com o hint de MIME explícito — mistério não vale a pena
+// perseguir quando temos matemática exata disponível: MP3 CBR garante
+// duração determinística a partir do tamanho em bytes; validado contra
+// a mesma amostra que a music-metadata mediu, batendo exatamente
+// 13.272s nos dois métodos).
+const BITRATE_BPS = 96_000;
 
 async function sintetizarTexto(texto: string): Promise<Buffer> {
   const tts = new MsEdgeTTS();
@@ -40,17 +51,13 @@ export interface CenaNarrada {
 }
 
 // Sintetiza o texto de uma cena e mede a duração REAL do áudio gerado
-// (parsing do MP3 via music-metadata, não estimativa) — usado pra
+// (matemática de bitrate constante, não estimativa) — usado pra
 // recalcular a duração do Sequence do Remotion com base na narração de
 // verdade, em vez de confiar na estimativa do roteiro gerado pelo
 // cérebro (OpenRouter só "chuta" a duração; quem manda é o áudio real).
 export async function sintetizarCena(texto: string): Promise<CenaNarrada> {
   const buffer = await sintetizarTexto(texto);
-  const metadata = await parseBuffer(buffer, "audio/mpeg");
-  const duracaoSegundos = metadata.format.duration;
-  if (!duracaoSegundos) {
-    throw new Error("Não foi possível medir a duração do áudio sintetizado.");
-  }
+  const duracaoSegundos = (buffer.length * 8) / BITRATE_BPS;
   return { buffer, duracaoSegundos };
 }
 

@@ -33,8 +33,8 @@ jobs:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
         run: npx tsx scripts/gerar-fixture-real.ts
 
-      - name: Gerar PDF de resumo
-        run: npx tsx scripts/testar-pdf.ts scripts/output/fixture-mercado-imobiliario.json scripts/output/fixture-mercado-imobiliario-mapa.svg
+      - name: Gerar PDF de resumo (só texto — mapa mental é ativo separado)
+        run: npx tsx scripts/testar-pdf.ts scripts/output/fixture-mercado-imobiliario.json
 
       - name: Sintetizar narração real (Edge TTS, pt-BR-AntonioNeural)
         run: npx tsx scripts/sintetizar-narracao-fixture.ts

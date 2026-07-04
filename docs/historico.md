@@ -596,3 +596,29 @@ Não é carregado por padrão em cada sessão.
     via Kroki) → PDF → narração real (Edge TTS) → props do Remotion
     (com áudio e durações reais) → render do vídeo. Artefatos separados
     pra vídeo, PDF, PNG do mapa mental e narração isolada.
+- **1ª tentativa do teste ponta a ponta (via Actions) — 2 problemas
+  encontrados**:
+  - Bug de medição de duração: a etapa de síntese da narração falhava
+    com `UnsupportedFileTypeError: Guessed MIME-type not supported:
+    audio/mpeg`, vindo da lib `music-metadata` ao tentar medir a
+    duração de cada cena — mesmo passando o hint de MIME-type
+    explícito. Não reproduzi o erro localmente com um áudio de teste
+    completo (13,272s), então troquei a abordagem em vez de perseguir
+    um mistério de sniffing: como o formato usado
+    (`AUDIO_24KHZ_96KBITRATE_MONO_MP3`) é bitrate constante conhecido
+    (96kbps), a duração é calculável por matemática exata
+    (`bytes*8/bitrate`) — validado batendo exatamente com o que a
+    `music-metadata` mediu na mesma amostra (13,272s nos dois
+    métodos). `lib/tts/sintetizar.ts` atualizado pra usar esse cálculo;
+    dependência `music-metadata` removida do projeto.
+  - **Ajuste de apresentação pedido por Davi**: o PDF gerado tinha o
+    mapa mental embutido dentro dele (2 páginas), o que não é o
+    comportamento desejado — PDF, mapa mental e vídeo devem ser 3
+    ativos totalmente independentes na tela do Learn (cada um sua
+    própria seção/aba/link), não um dentro do outro. O contrato
+    JSON/schema não mudou (os campos já eram separados); só a
+    apresentação final. `lib/pdf/gerarPdf.ts` alterado pra remover
+    completamente a inclusão do mapa mental (função `construirHtml` não
+    recebe mais SVG, `gerarPdfDoLearn` perdeu o parâmetro
+    `mapaMentalSvg`); `scripts/testar-pdf.ts` e o workflow atualizados
+    pra não passar mais o caminho do SVG.

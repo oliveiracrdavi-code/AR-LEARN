@@ -7,15 +7,9 @@ async function main() {
   const conteudo = await readFile(caminhoJson, "utf-8");
   const contrato = learnContratoSchema.parse(JSON.parse(conteudo));
 
-  let mapaMentalSvg: string | undefined;
-  const caminhoSvg = process.argv[3];
-  if (caminhoSvg) {
-    mapaMentalSvg = await readFile(caminhoSvg, "utf-8");
-  }
-
   const caminhoSaida = "scripts/output/fixture-mercado-imobiliario.pdf";
-  await gerarPdfDoLearn(contrato.learn, caminhoSaida, { mapaMentalSvg });
-  console.log("PDF gerado em:", caminhoSaida);
+  await gerarPdfDoLearn(contrato.learn, caminhoSaida);
+  console.log("PDF gerado em:", caminhoSaida, "(sem mapa mental embutido — ativo separado)");
 
   const pdfBuffer = await readFile(caminhoSaida);
   console.log("===PDF_BASE64_START===");
