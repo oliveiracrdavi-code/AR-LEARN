@@ -622,3 +622,27 @@ Não é carregado por padrão em cada sessão.
     recebe mais SVG, `gerarPdfDoLearn` perdeu o parâmetro
     `mapaMentalSvg`); `scripts/testar-pdf.ts` e o workflow atualizados
     pra não passar mais o caminho do SVG.
+- **2ª tentativa do teste ponta a ponta — resultado parcial e mais um
+  bug encontrado**:
+  - Fixture, PDF (sem mapa mental embutido — confirmado: 2 páginas só
+    de conteúdo textual, contagem de páginas igual a antes é
+    coincidência do tamanho do texto, não sinal de que o mapa ainda
+    está lá) e narração real (Edge TTS) funcionaram.
+  - **Achado importante sobre duração**: o cérebro (OpenRouter) estimou
+    565s de roteiro; a narração real medida (Edge TTS, cena a cena)
+    ficou em **454,27s** — bem abaixo da estimativa (a IA generativa
+    tende a superestimar tempo de leitura vs. o ritmo de fala real do
+    TTS), mas ainda **acima do piso de 420s (7 min)** exigido pelo
+    projeto. Vídeo final: 5s de intro + 454,27s de cenas = 459,27s
+    (~7min39s).
+  - Bug novo: o render do Remotion falhou com `Error while downloading
+    http://localhost:3000/scripts/output/narracao-fixture.mp3: ...404`.
+    Causa: o renderizador do Remotion só serve arquivos locais que
+    estejam dentro da pasta `public/` da raiz do projeto (via
+    `staticFile()`); um caminho relativo qualquer fora dela (como
+    `scripts/output/...`) não é servido pelo servidor de preview
+    interno dele, mesmo existindo no disco. Corrigido: a narração
+    passou a ser escrita em `public/narracao-fixture.mp3` (novo,
+    ignorado no git — não é ativo de produção), e
+    `preparar-props-remotion.ts` passou a construir o `audioSrc` com
+    `staticFile()` (importado de `remotion`) em vez do caminho cru.

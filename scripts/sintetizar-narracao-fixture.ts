@@ -3,13 +3,18 @@
 // a duração REAL de cada cena, pra sincronizar o timeline do vídeo
 // Remotion com o áudio de verdade (em vez da estimativa do roteiro).
 // Não precisa de nenhuma credencial/API key.
+//
+// O áudio vai pra public/ (não scripts/output/) de propósito: o
+// renderizador do Remotion serve assets locais só a partir da pasta
+// `public/` da raiz do projeto (via `staticFile()`) — um caminho
+// relativo fora dela dá 404 no servidor de preview interno dele.
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import type { LearnContrato } from "../lib/openrouter/schema";
 import { sintetizarRoteiro, VOZ_OFICIAL } from "../lib/tts/sintetizar";
 
 async function main() {
   const caminhoJson = process.argv[2] ?? "scripts/output/fixture-mercado-imobiliario.json";
-  const caminhoAudioSaida = process.argv[3] ?? "scripts/output/narracao-fixture.mp3";
+  const caminhoAudioSaida = process.argv[3] ?? "public/narracao-fixture.mp3";
   const caminhoDuracoesSaida = process.argv[4] ?? "scripts/output/narracao-fixture-duracoes.json";
 
   const conteudo = await readFile(caminhoJson, "utf-8");
@@ -23,6 +28,7 @@ async function main() {
     cenas.map((cena) => cena.texto_narrado)
   );
 
+  await mkdir("public", { recursive: true });
   await mkdir("scripts/output", { recursive: true });
   await writeFile(caminhoAudioSaida, audioCompleto);
   await writeFile(caminhoDuracoesSaida, JSON.stringify({ duracoesPorCena }, null, 2), "utf-8");

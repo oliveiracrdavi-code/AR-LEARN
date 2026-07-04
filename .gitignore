@@ -25,3 +25,8 @@ coverage/
 
 # saída de scripts de teste (conteúdo gerado, não versionado)
 scripts/output/
+
+# áudio de narração gerado por scripts de teste — precisa estar em
+# public/ pro Remotion servir via staticFile() no render, mas não é
+# ativo de produção, não versionar
+public/narracao-fixture.mp3
