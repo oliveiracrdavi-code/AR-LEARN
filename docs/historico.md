@@ -677,3 +677,18 @@ Não é carregado por padrão em cada sessão.
     retentativa automática (`comTimeout` com `Promise.race`), e
     `tts.close()` no `finally` pra não vazar a conexão WebSocket em
     caso de timeout.
+- **6ª tentativa — TTS passou rápido (34s), mas o render do Remotion
+  voltou a dar 404 no áudio**, agora em `http://localhost:3000/
+  narracao-fixture.mp3` (path certo, sem o prefixo `scripts/output/` de
+  antes — a correção do `staticFile()` funcionou nesse sentido), mas o
+  arquivo não estava no diretório temporário do bundle
+  (`/tmp/remotion-webpack-bundle-.../narracao-fixture.mp3`). Causa
+  provável: o Remotion não estava encontrando/copiando a pasta
+  `public/` do jeito esperado (a lógica de "achar a raiz do projeto" é
+  uma heurística, subindo diretórios até achar um `package.json`).
+  Corrigido de forma mais direta, sem depender de heurística: o comando
+  `remotion render` agora recebe `--public-dir="$(pwd)/public"`
+  explícito (caminho absoluto). Também adicionado um step de
+  diagnóstico (`ls -la public/`) antes do render, pra confirmar no log
+  que o arquivo existe e tem o tamanho esperado antes de qualquer nova
+  tentativa.

@@ -42,8 +42,11 @@ jobs:
       - name: Preparar props do Remotion (com narração real sincronizada)
         run: npx tsx scripts/preparar-props-remotion.ts scripts/output/fixture-mercado-imobiliario.json scripts/output/remotion-props.json public/narracao-fixture.mp3 scripts/output/narracao-fixture-duracoes.json
 
+      - name: Conferir narração em public/ (diagnóstico)
+        run: ls -la public/
+
       - name: Renderizar vídeo (Remotion)
-        run: npx remotion render remotion/src/index.ts LearnVideo scripts/output/video.mp4 --props=scripts/output/remotion-props.json
+        run: npx remotion render remotion/src/index.ts LearnVideo scripts/output/video.mp4 --props=scripts/output/remotion-props.json --public-dir="$(pwd)/public"
 
       - name: Upload — vídeo renderizado
         uses: actions/upload-artifact@v4
