@@ -42,8 +42,21 @@ async function main() {
   console.log("Texto:", TEXTO_TESTE);
   await mkdir("scripts/output", { recursive: true });
 
+  // Catálogo real de vozes pt-BR (não confiar de memória — a Microsoft
+  // pode ter renomeado/removido vozes desde o treinamento do modelo).
+  const catalogo = await new MsEdgeTTS().getVoices();
+  const vozesPtBr = catalogo.filter((v) => v.Locale === "pt-BR");
+  console.log("\n=== Catálogo real de vozes pt-BR disponíveis ===");
+  for (const v of vozesPtBr) {
+    console.log(`  ${v.ShortName} (${v.Gender})`);
+  }
+
   for (const voz of VOZES_CANDIDATAS) {
-    await sintetizarVoz(voz);
+    try {
+      await sintetizarVoz(voz);
+    } catch (erro) {
+      console.error(`FALHOU (${voz}):`, erro instanceof Error ? erro.message : erro);
+    }
   }
 }
 
