@@ -309,3 +309,98 @@ Não é carregado por padrão em cada sessão.
 - Ingestão real do YouTube (credenciais OAuth verdadeiras) segue
   pendente, sem previsão — o código já está pronto pra recebê-las
   quando Davi trouxer.
+
+## 2026-07-04 — Fase 2 (Geração dos 3 ativos), conteúdo real de teste
+- Davi pediu pra adiantar a Fase 2 com o mesmo contrato JSON já
+  validado na Fase 1 (a Fase 2 só depende do JSON, não da origem dele)
+  e, num ajuste seguinte, trocou o fixture sintético por uma
+  transcrição mais substancial sobre "como funciona o mercado
+  imobiliário" — genérica, escrita por mim, sem nenhum dado específico
+  da Carozzo/Altamente Rentável inventado (só pra dar volume real de
+  conteúdo pro cérebro trabalhar).
+- Transcrição salva em
+  `scripts/fixtures/transcricao-mercado-imobiliario.txt`.
+- **Gerado o JSON real via cérebro** (rodou via GitHub Actions, rede
+  bloqueada nesta sandbox): título "Desvendando o Mercado Imobiliário:
+  Transforme Imóveis em Ativos de Alta Rentabilidade", trilha
+  "Fundamentos do Mercado Imobiliário", módulo "Introdução ao
+  Investimento Imobiliário", 7 seções de PDF, 11 cenas de roteiro,
+  **530s (~8,8 min) de duração total** — bem acima do piso de 420s,
+  sem precisar de retry. Confirma a hipótese registrada antes: com
+  conteúdo real e mais rico, o piso de duração se resolve sozinho.
+- JSON extraído do log da Action (não há ferramenta de download de
+  artifact disponível nesta sessão; o script imprime o JSON e o SVG
+  delimitados no stdout pra isso) e salvo em
+  `scripts/output/fixture-mercado-imobiliario.json` (gitignored).
+- **Descoberta**: dá pra disparar o `workflow_dispatch` direto com
+  `ref: claude/ar-learn-platform-setup-63c3tl` (a branch de trabalho),
+  sem precisar que o conteúdo atualizado do workflow esteja no `main`
+  — só a *existência* do arquivo no `main` era necessária pra
+  registrar o workflow a primeira vez. Evita o round-trip de PR que
+  fizemos antes pra cada ajuste no `.yml`.
+
+### Mapa mental
+- `lib/mapa-mental/kroki.ts`: imagem estática via Kroki (mermaid
+  nativo) — funciona (kroki.io também bloqueado nesta sandbox, testado
+  via Actions).
+- **Inconsistência encontrada e resolvida**: o contrato usa sintaxe
+  Mermaid mindmap (campo `mapa_mental_mermaid`, com exemplo literal do
+  próprio Sistema_Autonomo_v2), mas o plano diz "Markmap (interativo)"
+  pro site — só que Markmap não entende sintaxe Mermaid, ele espera
+  markdown em lista aninhada. Resolvido com um conversor
+  (`lib/mapa-mental/converter.ts`) que transforma o texto Mermaid em
+  markdown compatível, preservando a mesma árvore.
+- Validado com o conteúdo real: **35 nós** na árvore. Validação dupla:
+  estrutural (`markmap-lib` Transformer, offline) e **visual de
+  verdade** — renderizado num Chromium headless local (bundles
+  `d3` + `markmap-view` de dentro do `node_modules`, sem precisar de
+  rede) e confirmado: 35 nós desenhados no SVG, zero erros de
+  console/página. Screenshot em
+  `scripts/output/fixture-mercado-imobiliario-mapa-visual.png`.
+
+### PDF
+- `lib/pdf/gerarPdf.ts`: HTML → PDF via Playwright/Chromium — sem
+  serviço pago, servidor-side. Gerado com sucesso a partir do
+  conteúdo real: 2 páginas, PDF válido (`%PDF-1.4`), com o mapa mental
+  (SVG do Kroki) embutido.
+- Nota técnica: o Chromium baixado automaticamente pelo Playwright
+  1.61.1 não bate com a revisão pré-instalada neste ambiente (1194 vs
+  1228 esperado). Sem rede pra baixar a nova, usei o binário
+  pré-instalado via `executablePath` explícito (env var
+  `PLAYWRIGHT_CHROMIUM_EXECUTABLE`, opcional — em produção/CI, sem
+  essa env var, o Playwright usa a revisão que ele mesmo baixaria
+  normalmente).
+
+### Videoaula (Remotion)
+- `remotion/src/`: composição `LearnVideo` (cartão de título + cenas a
+  partir de `video_roteiro.cenas`), com schema `zod` pras props (a
+  `Composition` do Remotion precisa disso pra inferir os tipos
+  corretamente — sem o schema, a inferência não funcionava). Estilo
+  provisório só funcional, como combinado (paleta Ouro & Concreto e
+  polimento de animação ficam pro prompt de design separado).
+- `audioSrc` é opcional: sem ele, o vídeo renderiza mudo. Nunca uma
+  voz substituta.
+- **BLOQUEIO sinalizado ANTES de tentar, como pedido**: não existe
+  `GOOGLE_CLOUD_TTS_CREDENTIALS_JSON` configurada em nenhum lugar desta
+  sessão. O código de síntese (`lib/tts/`) foi implementado (JWT de
+  service account assinado com `node:crypto`, chamada REST direta —
+  sem SDK), mas **nunca invocado**. Perguntei ao usuário como
+  proceder antes de fazer qualquer render com narração.
+- Renderização mecânica (sem áudio) tentada localmente nesta sandbox
+  pra validar que o pipeline funciona de ponta a ponta: Playwright
+  funcionou pro PDF, mas o Chromium "regular" não rende mais em
+  headless antigo (`Old Headless mode has been removed`) — resolvido
+  usando o binário `chrome-headless-shell` já pré-instalado neste
+  ambiente. `ffmpeg` também já vem embutido no compositor do próprio
+  Remotion (`@remotion/compositor-linux-x64-gnu`), não precisou de
+  binário externo. Render de ~535s a 1920x1080/30fps é
+  computacionalmente pesado num Chromium headless por software (sem
+  GPU) — rodou em background; resultado registrado quando terminar.
+- Aviso de versão (não bloqueante): Remotion 4.0.484 espera `zod`
+  exatamente `4.3.6`; o projeto usa `4.4.3` (mesma versão major usada
+  no resto do código, incluindo o schema do contrato do Learn). Só um
+  aviso no render, sem erro — mantido `4.4.3` por ora; revisitar se
+  aparecer algum problema de tipo real.
+- `.github/workflows/render-video-temp.yml`: workflow temporário
+  criado (mesmo padrão do teste do cérebro), pronto pra rodar quando
+  a credencial de TTS existir — **ainda não disparado**.
