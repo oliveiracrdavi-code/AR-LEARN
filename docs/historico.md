@@ -217,8 +217,61 @@ Não é carregado por padrão em cada sessão.
   API — preferi o slug simples e verificável a arriscar de novo.
   `deepseek/deepseek-chat` seguiu documentado como alternativa
   (`OPENROUTER_MODEL`), também confirmado como slug real e vigente.
-- Corrigido em `lib/openrouter/gerarLearn.ts` e `.env.example`.
-  Type-check e `schema:teste` (offline) passaram aqui na sandbox; o
-  teste real da chamada ao OpenRouter só pode ser confirmado no
-  Actions. Aberto PR #3 só com essa correção.
-- Aguardando: Davi mergear o PR #3 e disparar o workflow de novo.
+- Corrigido em `lib/openrouter/gerarLearn.ts` e `.env.example`, commitado
+  direto na branch de trabalho. **Correção no próprio registro**: eu
+  tinha escrito aqui "Aberto PR #3" — isso não aconteceu e foi um erro
+  meu neste arquivo. Não foi preciso PR nenhum: o workflow já mergeado
+  (`checkout ref: claude/ar-learn-platform-setup-63c3tl`) busca o
+  código direto dessa branch, então o push já valeu na próxima
+  execução, sem precisar passar pelo `main` de novo.
+- Disparo seguinte: **sucesso** (25s). JSON do Learn gerado e validado
+  contra o contrato, a partir de uma transcrição sintética de teste:
+  título "Short Stay em Feira de Santana: Oportunidade de Alta
+  Rentabilidade", trilha "Investimento Imobiliário", módulo "Short Stay
+  e Novas Modalidades de Locação", 3 seções de PDF, 4 cenas de roteiro,
+  ~1 min de duração estimada. Observação registrada: a duração ficou
+  bem abaixo do piso de 5 min pedido no prompt na época — provavelmente
+  por a transcrição de teste ser um parágrafo sintético curto, não um
+  episódio real; sinalizado ao usuário para acompanhar com conteúdo
+  real.
+
+## 2026-07-04 — Piso de duração: 5 min → 7 min (420s)
+- Atualizado em `CLAUDE.md`, `docs/stack.md` e no system prompt do
+  cérebro (`lib/openrouter/systemPrompt.ts`).
+- **Correção de fato, registrada com transparência**: o usuário se
+  referiu a "a validação por código que pedi para você adicionar" como
+  algo já solicitado antes — não encontrei esse pedido em nenhum ponto
+  anterior desta conversa, e de fato eu não tinha implementado nenhuma
+  validação de duração em código até agora (só existia como instrução
+  de texto no prompt do LLM, sem checagem no `gerarLearn.ts`). Também
+  não existe nenhum arquivo `docs/*Guia_de_Voz*` neste repositório — o
+  Guia de Voz e Vídeo V2 é um dos PDFs fonte, nunca versionado aqui
+  (por decisão da própria Fase 0: PDFs não entram no repo). Reportei
+  isso ao usuário em vez de simplesmente confirmar algo que não
+  aconteceu.
+- Implementada agora, pela primeira vez, a validação por código em
+  `gerarLearn.ts`: depois do schema validar, soma `duracao_seg` de
+  todas as cenas; se `< 420`, trata como resultado inválido e pede ao
+  LLM pra expandir o roteiro (sem inventar fatos fora da transcrição),
+  reaproveitando o mesmo laço de retry do JSON malformado, até
+  `MAX_TENTATIVAS`.
+
+## 2026-07-04 — Sinalização: pedido de trocar ingestão para yt-dlp + API key simples
+- O usuário pediu, na mesma mensagem das duas atualizações acima, para
+  seguir a Fase 1 com "ingestão real do YouTube (API key simples +
+  yt-dlp para transcrição pública, como decidimos)".
+- **Aplicando a Regra de Ouro: parei antes de implementar, em vez de
+  seguir.** Dois problemas concretos:
+  1. Não existe registro de "termos decidido" isso em nenhum ponto
+     desta conversa — a decisão documentada (Fase 0/1, confirmada por
+     3 PDFs diferentes) sempre foi YouTube Data API v3 **via OAuth do
+     dono do canal**, porque `captions.download` não funciona só com
+     API key (confirmado no Manual das Ferramentas e no
+     Sistema_Autonomo_v2, não é só uma preferência nossa — é uma
+     limitação da própria API do YouTube).
+  2. `yt-dlp` nunca apareceu em nenhum dos PDFs fonte. É uma ferramenta
+     nova, fora do stack aprovado, que baixa mídia do YouTube por fora
+     da API oficial — isso esbarra em "não trocar ferramenta por conta
+     própria" e pode levantar questão de Termos de Uso do YouTube.
+- Não implementado. Pedido esclarecimento ao usuário antes de
+  prosseguir com a ingestão real (ver resposta no chat).

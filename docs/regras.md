@@ -35,6 +35,23 @@ dentro de uma trilha mais ampla. Os nomes de exemplo do adendo
 ("Como fazer seu primeiro milhão" etc.) são rascunho, não lista final.
 Cada Learn continua rastreável ao episódio de origem, sem exceção.
 
+## Vitrine Netflix — especificação de UI (Fase 4, NÃO implementar ainda)
+Decisões finais do usuário para quando a Fase 4 chegar (a spec, não o
+código — schema da Fase 0 não muda):
+- Fileiras horizontais, uma por Trilha (não lista única).
+- Várias fileiras empilhadas verticalmente na página; rolar pra baixo
+  revela mais fileiras/trilhas (padrão Netflix/Astron Members).
+- Cards são retângulos verticais, proporção pôster ~2:3 (compatível com
+  capa/thumb do episódio) — nunca quadrados.
+- Hover: card cresce e "vem pra frente" (escala + sombra + vizinhos se
+  afastam) — efeito clássico de streaming.
+- Clique no card abre o conteúdo daquele Learn: mapa mental + PDF
+  resumo + vídeo overview.
+- Nomenclatura técnica (Trilha/Módulo/Learn) não aparece pro aluno —
+  ele só vê capas e títulos.
+- Polimento visual (animações, render 3D) é prompt separado, enviado
+  depois que a vitrine básica funcionar — não adiantar.
+
 ## Hierarquia entre documentos
 O documento "System Prompt NotebookLM" (produto/design/landing/área de
 membros) continua válido, exceto na seção de pipeline/esteira de produção,
