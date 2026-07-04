@@ -66,6 +66,15 @@ com uma chamada real, quando as credenciais (`CLOUDFLARE_API_TOKEN`,
 `CLOUDFLARE_ACCOUNT_ID`) chegarem. Se não suportar pt-BR de verdade,
 essa decisão volta à mesa — ver `docs/historico.md`.
 
+**Decisão final (2026-07-04): Cloudflare Workers AI é a única ferramenta
+de TTS deste projeto — sem fallback automático para OpenAI, Google
+Cloud TTS ou qualquer outro provedor.** Se o teste real falhar (erro ou
+fonética incorreta), e mesmo depois de conferir o catálogo completo e
+atual de modelos de áudio do Workers AI (pode ter modelo novo com
+suporte a português que ainda não foi conferido), a IA deve **parar e
+reportar o resultado exato — não trocar de provedor por conta própria**.
+Só o usuário decide o próximo passo.
+
 ## Hierarquia entre documentos
 O documento "System Prompt NotebookLM" (produto/design/landing/área de
 membros) continua válido, exceto na seção de pipeline/esteira de produção,
