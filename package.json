@@ -9,7 +9,8 @@
     "lint": "eslint .",
     "fase1:teste": "tsx --env-file=.env.local scripts/fase1-testar-episodio.ts",
     "cerebro:teste": "tsx --env-file=.env.local scripts/testar-cerebro-isolado.ts",
-    "schema:teste": "tsx scripts/testar-schema-offline.ts"
+    "schema:teste": "tsx scripts/testar-schema-offline.ts",
+    "youtube:teste": "tsx scripts/testar-youtube-mock.ts"
   },
   "dependencies": {
     "next": "^16.2.10",

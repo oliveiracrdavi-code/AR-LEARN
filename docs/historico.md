@@ -275,3 +275,37 @@ Não é carregado por padrão em cada sessão.
      própria" e pode levantar questão de Termos de Uso do YouTube.
 - Não implementado. Pedido esclarecimento ao usuário antes de
   prosseguir com a ingestão real (ver resposta no chat).
+- Usuário aceitou: ingestão real do YouTube fica pendente, sem data
+  marcada, até ele trazer as credenciais OAuth reais. Não é bloqueio —
+  seguimos avançando o resto da Fase 1 sem depender delas.
+
+## 2026-07-04 — Vitrine da spec, retry de duração e testes de ingestão com mock
+- **Vitrine Netflix**: detalhes registrados em `docs/regras.md` (ver
+  seção correspondente) — nada implementado, é Fase 4.
+- **Confirmação do retry de duração (420s)**: disparado o workflow de
+  novo com a transcrição sintética. Resultado real: o cérebro tentou 3
+  vezes, e a duração *de fato subiu a cada tentativa* — a última
+  tentativa chegou a 384s (contra ~60s da rodada anterior, antes do
+  piso subir pra 420s), mas ainda ficou abaixo do novo piso. Como
+  esperado, o código não aceitou o resultado curto e lançou erro em vez
+  de aceitar silenciosamente — é o comportamento correto (falhar com
+  clareza), não um bug. Isso é esperado justamente porque a transcrição
+  de teste é sintética e curtíssima (um parágrafo) — sem inventar fatos,
+  não dá pra esticar pra 7 min de conteúdo real. Deve se resolver
+  naturalmente com transcrições de episódios reais, bem mais longas.
+  Adicionado log por tentativa em `gerarLearn.ts` (`[tentativa N]
+  duração do roteiro: Xs`) pra facilitar esse diagnóstico no futuro.
+- **Testes de ingestão do YouTube com mock** (sem rede real, sem
+  credenciais): criado `scripts/testar-youtube-mock.ts`
+  (`npm run youtube:teste`). Simula respostas da API (channels,
+  playlistItems paginado, captions list/download, token OAuth) via
+  monkey-patch de `global.fetch`. 9/9 testes passando localmente:
+  paginação da uploads playlist (2 páginas, 3 vídeos), preservação de
+  ordem/dados, priorização de legenda pt-BR sobre outra língua,
+  `srtParaTextoCorrido` removendo timestamps/números, `baixarLegenda`
+  retornando `null` quando não há legenda (gatilho do fallback Groq),
+  tratamento do erro 403 (cota), e cache do access token (só 1 chamada
+  ao endpoint de token mesmo com múltiplas chamadas à API).
+- Ingestão real do YouTube (credenciais OAuth verdadeiras) segue
+  pendente, sem previsão — o código já está pronto pra recebê-las
+  quando Davi trouxer.

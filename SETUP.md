@@ -4,8 +4,9 @@ Fatos e status do projeto. Sem narrativa — só o necessário para retomar
 o trabalho do tablet no PC (ou vice-versa).
 
 ## Fase atual
-**Fase 1 (Esteira mínima, 1 episódio) — código pronto, aguardando
-credenciais reais do usuário para rodar o teste ponta a ponta.**
+**Fase 1 (Esteira mínima, 1 episódio) — cérebro validado de ponta a
+ponta (via GitHub Actions, com chaves reais); ingestão real do YouTube
+pendente das credenciais OAuth, sem data marcada (não bloqueia o resto).**
 Fase 0 aprovada. Não avançar para a Fase 2 sem aprovação explícita.
 
 ## Ambiente
@@ -51,12 +52,19 @@ Fase 0 aprovada. Não avançar para a Fase 2 sem aprovação explícita.
       contrato JSON validado offline: aceita fixture completo, rejeita
       campo faltando e campo extra
 - [x] `scripts/testar-cerebro-isolado.ts` (`npm run cerebro:teste`) —
-      pronto, mas **bloqueado neste sandbox**: política de rede do
-      ambiente não permite `openrouter.ai` nem `api.groq.com` (ver
-      `docs/historico.md`, entrada de 2026-07-03). Rodar assim que a
-      rede for liberada ou fora deste ambiente.
+      **validado com sucesso via GitHub Actions** (chaves reais em
+      GitHub Secrets; a sandbox de dev local segue sem rede pra
+      `openrouter.ai`/`api.groq.com`, ver `docs/historico.md`)
+- [x] `scripts/testar-youtube-mock.ts` (`npm run youtube:teste`) — 9/9
+      testes passando localmente com respostas simuladas da API
+      (paginação, priorização de legenda, fallback, erro 403, cache do
+      token), sem credenciais reais
+- [x] Validação de duração mínima (420s) por código em `gerarLearn.ts`,
+      confirmada funcionando via Actions (retry eleva a duração a cada
+      tentativa; loga `[tentativa N] duração do roteiro: Xs`)
 - [ ] **Teste real com 1 episódio (YouTube) — pendente das credenciais
-      de OAuth** (o usuário ainda não tem acesso de gerente ao canal)
+      de OAuth, sem data marcada** (o usuário ainda não tem acesso de
+      gerente ao canal); código já pronto pra recebê-las
 
 ## O que falta (próximas fases)
 - Rodar as migrations num projeto Supabase real (ainda não provisionado)
@@ -112,8 +120,10 @@ App: `NEXT_PUBLIC_SITE_URL`
   precisa ser fornecido manualmente (a produção já tem o arquivo da
   gravação); **confirmar esse fluxo com o usuário antes de usar em
   produção**
-- Modelo padrão do cérebro: `google/gemini-2.0-flash-001` via
-  OpenRouter, trocável por `OPENROUTER_MODEL` sem mexer em código
+- Modelo padrão do cérebro: `google/gemini-2.5-flash` via OpenRouter
+  (o slug anterior, `gemini-2.0-flash-001`, foi descontinuado —
+  corrigido em 2026-07-04), trocável por `OPENROUTER_MODEL` sem mexer
+  em código
 - Resultado do teste de 1 episódio é salvo em `scripts/output/<video_id>.json`
   (gitignored — não é publicação, é só o artefato de verificação da Fase 1)
 
