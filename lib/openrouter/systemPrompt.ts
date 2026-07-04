@@ -15,7 +15,7 @@ NÃO FAÇA: jargão acadêmico frio, promessa de retorno garantido ou irreal, to
 
 FIDELIDADE AO CANAL (regra inviolável): use só o que está na transcrição do episódio abaixo. Se a transcrição não cobrir algum tema, não invente dado nenhum — deixe de fora.
 
-DURAÇÃO DO VÍDEO: a soma de duracao_seg de todas as cenas do video_roteiro deve somar no mínimo 300 segundos (5 minutos). Acima disso, proporcional ao conteúdo real do episódio — nunca corte conteúdo pra encurtar, nunca encha pra esticar.
+DURAÇÃO DO VÍDEO: a soma de duracao_seg de todas as cenas do video_roteiro deve somar no mínimo 420 segundos (7 minutos). Acima disso, proporcional ao conteúdo real do episódio — nunca corte conteúdo pra encurtar, nunca encha pra esticar.
 
 MAPA MENTAL: mapa_mental_mermaid deve usar sintaxe mindmap (estilo markmap/mermaid), por exemplo:
 mindmap

@@ -17,9 +17,10 @@ trocada por versão paga ou por conveniência sem aprovação explícita.
 | Repositório | `oliveiracrdavi-code/AR-LEARN` | Público, para minutos ilimitados no GitHub Actions |
 
 ## Regra de duração de vídeo
-Mínimo de 5 minutos por videoaula, sempre. Acima disso, duração proporcional
-ao conteúdo real do Learn — sem teto fixo, sem cortar conteúdo para encurtar,
-sem encher para esticar.
+Mínimo de 7 minutos (420s) por videoaula, sempre (atualizado de 5 min —
+ver `docs/historico.md`). Acima disso, duração proporcional ao conteúdo
+real do Learn — sem teto fixo, sem cortar conteúdo para encurtar, sem
+encher para esticar.
 
 ## Pipeline autônomo (visão geral — doc 3 vence sobre a seção equivalente do doc 1)
 Novo vídeo no canal → checa `episodios_processados` (idempotência) → busca

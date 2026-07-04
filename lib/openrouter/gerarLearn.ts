@@ -12,6 +12,10 @@ import { SYSTEM_PROMPT_CEREBRO } from "./systemPrompt";
 const MODELO_BARATO = process.env.OPENROUTER_MODEL || "google/gemini-2.5-flash";
 const MAX_TENTATIVAS = 3;
 
+// Duração mínima do vídeo (Regra de Ouro do projeto — CLAUDE.md /
+// docs/stack.md). Atualizado de 300s (5 min) para 420s (7 min).
+const DURACAO_MINIMA_SEG = 420;
+
 type Mensagem = { role: "system" | "user" | "assistant"; content: string };
 
 class ErroTransiente extends Error {}
@@ -72,7 +76,22 @@ export async function gerarLearnDoEpisodio(
       const validado = learnContratoSchema.safeParse(parsed);
 
       if (validado.success) {
-        return validado.data;
+        const duracaoTotal = validado.data.learn.video_roteiro.cenas.reduce(
+          (soma, cena) => soma + cena.duracao_seg,
+          0
+        );
+
+        if (duracaoTotal >= DURACAO_MINIMA_SEG) {
+          return validado.data;
+        }
+
+        ultimoErro = `duração total do roteiro (${duracaoTotal}s) abaixo do piso de ${DURACAO_MINIMA_SEG}s`;
+        mensagens.push({ role: "assistant", content: resposta });
+        mensagens.push({
+          role: "user",
+          content: `A soma de duracao_seg das cenas ficou em ${duracaoTotal}s, abaixo do mínimo de ${DURACAO_MINIMA_SEG}s (7 minutos). Devolva o JSON de novo, expandindo o video_roteiro com mais cenas/detalhe do que já está na transcrição — sem inventar fatos que não estão nela — até atingir o piso. Sem cercas de markdown.`,
+        });
+        continue;
       }
 
       ultimoErro = validado.error.message;

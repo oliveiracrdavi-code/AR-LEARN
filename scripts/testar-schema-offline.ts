@@ -20,7 +20,7 @@ const fixtureValido = {
     },
     video_roteiro: {
       cenas: [
-        { texto_narrado: "Fala de exemplo.", duracao_seg: 300, visual: "Tela de exemplo." },
+        { texto_narrado: "Fala de exemplo.", duracao_seg: 420, visual: "Tela de exemplo." },
       ],
     },
     mapa_mental_mermaid: "mindmap\n  root((Conceito))\n    Ramo 1",
