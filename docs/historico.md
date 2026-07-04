@@ -189,3 +189,12 @@ Não é carregado por padrão em cada sessão.
   https://github.com/oliveiracrdavi-code/AR-LEARN/pull/1
 - Aguardando: Davi mergear esse PR, cadastrar os 2 secrets e disparar o
   workflow manualmente.
+- PR #1 mergeado. Primeiro disparo falhou: `npm ci` deu `EUSAGE`
+  porque `main` só tinha o arquivo do workflow (sem `package.json`/
+  lockfile/código — só a branch de trabalho tem o projeto completo).
+  Escolhida a opção mais robusta entre as duas sugeridas: checkout
+  explícito de `ref: claude/ar-learn-platform-setup-63c3tl` no step de
+  checkout (em vez de trocar `npm ci` por `npm install`, que não
+  resolveria a causa raiz — main segue sem o projeto). Corrigido e
+  aberto PR #2: https://github.com/oliveiracrdavi-code/AR-LEARN/pull/2
+- Aguardando: Davi mergear o PR #2 e disparar o workflow de novo.
