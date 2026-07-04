@@ -6,7 +6,7 @@
 3. Ingestão: YouTube Data API v3 (OAuth do dono do canal) + fallback Groq Whisper
 4. Geração de conteúdo: OpenRouter (modelo barato) → JSON estruturado do Learn
 5. Vídeo: Remotion, render só no GitHub Actions (nunca Lambda, nunca serviço pago) — licença Free, produto individual
-6. Voz: Cloudflare Workers AI (MeloTTS), voz única fixa — não é clonagem (sem Fish Audio/Chatterbox/ElevenLabs). Suporte a pt-BR ainda não confirmado na prática (ver docs/historico.md)
+6. Voz: Edge TTS (msedge-tts), voz oficial e fixa `pt-BR-AntonioNeural` — não é clonagem (sem Fish Audio/Chatterbox/ElevenLabs). Não é API oficial da Microsoft (sem SLA); Plano C documentado = Google Cloud TTS (ver docs/regras.md)
 7. Mapa mental: Markmap (interativo) + Kroki (imagem no PDF)
 
 ## Regra de Ouro

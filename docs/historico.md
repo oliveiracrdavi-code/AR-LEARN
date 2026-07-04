@@ -502,3 +502,97 @@ Não é carregado por padrão em cada sessão.
     **ainda não confirmado**; eu não consigo julgar fonética
     sozinho. Nenhuma decisão de prosseguir com a troca completa foi
     tomada até essa confirmação chegar.
+
+## 2026-07-04 — Troca de ferramenta de voz: Cloudflare Workers AI (MeloTTS) → Edge TTS
+- **Resultado do teste anterior**: usuário ouviu o áudio do MeloTTS e
+  **reprovou** — pronúncia misturava fonética de outro idioma,
+  confirmando na prática o risco já registrado antes do teste (o
+  português não consta na lista oficial de idiomas suportados pelo
+  MeloTTS). Por decisão do usuário (registrada em `docs/regras.md`),
+  não troquei de provedor por conta própria — reportei o resultado
+  exato e aguardei a decisão.
+- **Decisão do usuário**: trocar para **Edge TTS**, biblioteca
+  open-source que usa o endpoint não documentado do recurso "Ler em
+  voz alta" do navegador Microsoft Edge, sem exigir API key/conta de
+  faturamento.
+- **Pesquisa de pacote NPM** (pedido explícito: comparar estrelas,
+  atividade, issues abertas antes de escolher):
+  - `msedge-tts` (Migushthe2nd/MsEdgeTTS): 320 estrelas, 0 issues
+    abertas, TypeScript nativo, última atualização jun/2026, suporta
+    MP3 nativamente — **escolhido**.
+  - `node-edge-tts`: 149 estrelas.
+  - `edge-tts-universal`: 70 estrelas.
+  - `edge-tts-node`: mesmo repositório do `msedge-tts`, mas nome antigo
+    e abandonado (última atualização nov/2024).
+- **Teste isolado #1 (voz feminina)**: `pt-BR-FranciscaNeural`, via
+  workflow temporário `teste-tts-temp.yml` reaproveitado (checkout já
+  pinado na branch de trabalho, sem precisar de novo PR). Sucesso de
+  primeira, sem nenhum secret novo. Áudio confirmado como MP3 real
+  (24kHz mono, 96kbps) via magic bytes. Enviado ao usuário — **aprovado
+  por ouvido**.
+- **Pedido de troca pra voz masculina**: usuário decidiu, depois de
+  ouvir a Francisca, que queria voz masculina alinhada ao perfil do
+  Leandro Carozzo (Guia de Voz e Vídeo V2: confiante, caloroso,
+  profissional). Pediu teste comparativo de 3 candidatas:
+  `pt-BR-AntonioNeural`, `pt-BR-HumbertoNeural`, `pt-BR-DonatoNeural`.
+- **Teste isolado #2 (3 vozes masculinas)**:
+  - 1ª rodada: só `pt-BR-AntonioNeural` sintetizou; `pt-BR-HumbertoNeural`
+    falhou com "No audio data received" e o script abortava o loop
+    inteiro no primeiro erro, então `pt-BR-DonatoNeural` nunca chegou a
+    rodar. Corrigido: cada voz passou a rodar em try/catch isolado, e o
+    script passou a consultar o catálogo real de vozes via
+    `tts.getVoices()` antes de tentar qualquer voz (em vez de confiar
+    de memória em quais nomes existem).
+  - 2ª rodada (script corrigido): confirmado que o catálogo real de
+    vozes pt-BR do Edge TTS tem só 3 entradas —
+    `pt-BR-ThalitaMultilingualNeural` (feminina),
+    `pt-BR-AntonioNeural` (masculina) e `pt-BR-FranciscaNeural`
+    (feminina). `pt-BR-HumbertoNeural` e `pt-BR-DonatoNeural` **não
+    existem** de fato — as duas falharam de novo, consistente com o
+    catálogo. `pt-BR-AntonioNeural` é a única voz masculina pt-BR
+    disponível nessa API.
+  - Áudio da Antonio extraído do log da Action (download de artefato
+    via blob do Azure bloqueado pelo proxy da sandbox — mesmo problema
+    de sempre; contornado com o print base64 no stdout, já usado nos
+    testes anteriores) e enviado ao usuário.
+- **Decisão final do usuário**: `pt-BR-AntonioNeural` aprovado por
+  ouvido, comparado com referência real do Leandro Carozzo — **voz
+  oficial e fixa do projeto, não trocar sem aprovação explícita**.
+  Registrado em `docs/regras.md`, `docs/stack.md`, `CLAUDE.md`.
+- **Integração completa no pipeline**:
+  - `lib/tts/sintetizar.ts` reescrito para Edge TTS (`msedge-tts`),
+    voz fixa `pt-BR-AntonioNeural` como constante exportada
+    (`VOZ_OFICIAL`), não mais parâmetro de teste.
+  - Nova função `sintetizarCena` sintetiza o texto de uma cena e mede a
+    duração REAL do áudio (via `music-metadata`, parsing do MP3 — não
+    estimativa), porque a duração que o cérebro (OpenRouter) chuta pro
+    roteiro é só uma estimativa de leitura; quem manda na sincronia
+    vídeo/áudio é a narração de verdade.
+  - `sintetizarRoteiro` agora sintetiza cena a cena e devolve tanto o
+    áudio concatenado quanto as durações reais medidas por cena.
+  - Novo script `scripts/sintetizar-narracao-fixture.ts`
+    (`npm run narracao:sintetizar`) sintetiza a narração do fixture
+    "mercado imobiliário" e salva as durações reais medidas.
+  - `scripts/preparar-props-remotion.ts` atualizado: aceita o caminho
+    do áudio e das durações reais; quando fornecidos, substitui a
+    `duracao_seg` estimada de cada cena pela duração real da narração
+    (sincronização vídeo/áudio cena a cena).
+  - `remotion/src/LearnVideo.tsx`: corrigido bug de sincronia — o
+    `<Audio>` tocava desde o frame 0, sobrepondo o card de título (5s,
+    sem narração); agora fica dentro de um `<Sequence from=...>` que
+    começa junto da primeira cena.
+  - Código do Cloudflare/MeloTTS movido (não apagado) para
+    `lib/tts/obsoleto/sintetizarCloudflareMeloTts.ts`, comentado como
+    obsoleto e com o resultado do teste real registrado.
+  - `.env.example`: removidas `CLOUDFLARE_API_TOKEN` e
+    `CLOUDFLARE_ACCOUNT_ID` — Edge TTS não precisa de nenhuma variável
+    de ambiente.
+  - `docs/regras.md` atualizado com a ressalva de que o Edge TTS não é
+    API oficial da Microsoft (endpoint não documentado, sem SLA) e com
+    o Plano C documentado (Google Cloud TTS, só se o Edge TTS quebrar
+    no futuro — não implementar preventivamente).
+  - Workflow `render-video-temp.yml` reescrito pra gerar os 3 ativos
+    ponta a ponta num único run: fixture (JSON + mapa mental SVG/PNG
+    via Kroki) → PDF → narração real (Edge TTS) → props do Remotion
+    (com áudio e durações reais) → render do vídeo. Artefatos separados
+    pra vídeo, PDF, PNG do mapa mental e narração isolada.

@@ -42,12 +42,20 @@ async function main() {
   await writeFile(caminhoSvg, svgBuffer);
   console.log("SVG salvo em:", caminhoSvg, `(${svgBuffer.length} bytes)`);
 
+  const pngBuffer = await renderizarMapaMentalKroki(learn.learn.mapa_mental_mermaid, "png");
+  const caminhoPng = "scripts/output/fixture-mercado-imobiliario-mapa.png";
+  await writeFile(caminhoPng, pngBuffer);
+  console.log("PNG salvo em:", caminhoPng, `(${pngBuffer.length} bytes)`);
+
   console.log("===JSON_START===");
   console.log(JSON.stringify(learn));
   console.log("===JSON_END===");
   console.log("===SVG_START===");
   console.log(svgBuffer.toString("utf-8"));
   console.log("===SVG_END===");
+  console.log("===MAPA_PNG_BASE64_START===");
+  console.log(pngBuffer.toString("base64"));
+  console.log("===MAPA_PNG_BASE64_END===");
 }
 
 main().catch((erro) => {

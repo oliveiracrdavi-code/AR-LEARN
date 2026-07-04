@@ -1,7 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { learnContratoSchema } from "../lib/openrouter/schema";
 import { gerarPdfDoLearn } from "../lib/pdf/gerarPdf";
-import { renderizarMapaMentalKroki } from "../lib/mapa-mental/kroki";
 
 async function main() {
   const caminhoJson = process.argv[2] ?? "scripts/output/fixture-mercado-imobiliario.json";
@@ -17,6 +16,11 @@ async function main() {
   const caminhoSaida = "scripts/output/fixture-mercado-imobiliario.pdf";
   await gerarPdfDoLearn(contrato.learn, caminhoSaida, { mapaMentalSvg });
   console.log("PDF gerado em:", caminhoSaida);
+
+  const pdfBuffer = await readFile(caminhoSaida);
+  console.log("===PDF_BASE64_START===");
+  console.log(pdfBuffer.toString("base64"));
+  console.log("===PDF_BASE64_END===");
 }
 
 main().catch((erro) => {

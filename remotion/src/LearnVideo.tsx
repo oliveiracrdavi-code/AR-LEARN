@@ -14,8 +14,9 @@ export const learnVideoPropsSchema = z.object({
   trilha: z.string(),
   modulo: z.string(),
   cenas: z.array(cenaVideoSchema),
-  // Caminho/URL do áudio de narração já sintetizado (Google Cloud TTS).
-  // Sem isso, o vídeo renderiza mudo — nunca com uma voz substituta.
+  // Caminho/URL do áudio de narração já sintetizado (Edge TTS, voz
+  // oficial pt-BR-AntonioNeural). Sem isso, o vídeo renderiza mudo —
+  // nunca com uma voz substituta.
   audioSrc: z.string().optional(),
 });
 
@@ -84,11 +85,19 @@ function CenaView({ cena }: { cena: CenaVideo }) {
 
 export function LearnVideo({ titulo, trilha, modulo, cenas, audioSrc }: LearnVideoProps) {
   const { fps } = useVideoConfig();
-  let frameAtual = Math.round(DURACAO_INTRO_SEG * fps);
+  const frameInicioCenas = Math.round(DURACAO_INTRO_SEG * fps);
+  let frameAtual = frameInicioCenas;
 
   return (
     <AbsoluteFill>
-      {audioSrc ? <Audio src={audioSrc} /> : null}
+      {audioSrc ? (
+        // A narração começa junto da primeira cena, não do card de
+        // título (que não tem texto narrado) — sem isso, áudio e vídeo
+        // saem 5s fora de sincronia.
+        <Sequence from={frameInicioCenas}>
+          <Audio src={audioSrc} />
+        </Sequence>
+      ) : null}
 
       <Sequence durationInFrames={Math.round(DURACAO_INTRO_SEG * fps)}>
         <TituloCard titulo={titulo} trilha={trilha} modulo={modulo} />

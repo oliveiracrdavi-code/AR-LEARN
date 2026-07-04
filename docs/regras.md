@@ -53,26 +53,49 @@ código — schema da Fase 0 não muda):
   depois que a vitrine básica funcionar — não adiantar.
 
 ## Troca de ferramenta de voz (decisão explícita, não desvio silencioso)
-Voz trocada de Google Cloud TTS para Cloudflare Workers AI (MeloTTS) em
-2026-07-04. Motivo: Google Cloud exigia conta de faturamento com
-verificação de identidade/CPF, que travou o uso na prática; Cloudflare
-já é conta existente (mesma do Pages), tier gratuito de 10.000
-neurons/dia, sem cartão, licença MIT. **Risco em aberto**: a
-documentação oficial do MeloTTS (Cloudflare e o repositório
-myshell-ai) não lista português entre os idiomas suportados — só
-inglês, espanhol, francês, chinês, japonês e coreano — e há relato da
-comunidade de que nem o espanhol funciona direito. Só será confirmado
-com uma chamada real, quando as credenciais (`CLOUDFLARE_API_TOKEN`,
-`CLOUDFLARE_ACCOUNT_ID`) chegarem. Se não suportar pt-BR de verdade,
-essa decisão volta à mesa — ver `docs/historico.md`.
+Histórico de tentativas (nessa ordem, todas registradas em
+`docs/historico.md`):
+1. **Google Cloud TTS** — descartado antes de testar: exigia conta de
+   faturamento com verificação de identidade/CPF, que travou o uso na
+   prática.
+2. **Cloudflare Workers AI (MeloTTS)** — testado com credencial real
+   (conta existente, tier gratuito, sem cartão). **REPROVADO por
+   ouvido**: a pronúncia misturava fonética de outro idioma,
+   confirmando o risco já documentado antes do teste (português não
+   consta na lista oficial de idiomas do MeloTTS).
+3. **Edge TTS (biblioteca `msedge-tts`)** — testado e **APROVADO**.
 
-**Decisão final (2026-07-04): Cloudflare Workers AI é a única ferramenta
-de TTS deste projeto — sem fallback automático para OpenAI, Google
-Cloud TTS ou qualquer outro provedor.** Se o teste real falhar (erro ou
-fonética incorreta), e mesmo depois de conferir o catálogo completo e
-atual de modelos de áudio do Workers AI (pode ter modelo novo com
-suporte a português que ainda não foi conferido), a IA deve **parar e
-reportar o resultado exato — não trocar de provedor por conta própria**.
+### Decisão final (2026-07-04): voz oficial do projeto
+**Voz oficial do projeto: `pt-BR-AntonioNeural` (Edge TTS). Fixa em
+todo o pipeline — nunca trocar sem aprovação explícita de Davi.**
+Aprovada por ouvido, comparando com referência real do Leandro
+Carozzo, entre 3 candidatas masculinas testadas
+(`pt-BR-AntonioNeural`, `pt-BR-HumbertoNeural`, `pt-BR-DonatoNeural`).
+Só a primeira existe de fato no catálogo do Edge TTS (confirmado via
+`tts.getVoices()`, não por documentação) — as outras duas falharam com
+"No audio data received". A voz feminina `pt-BR-FranciscaNeural`
+também tinha sido testada e aprovada antes, mas foi substituída pela
+decisão de usar voz masculina alinhada ao perfil do Leandro Carozzo.
+
+**Ressalva importante — Edge TTS não é uma API oficial/comercial da
+Microsoft.** É o mesmo endpoint não documentado
+(`speech.platform.bing.com`) usado pelo recurso "Ler em voz alta" do
+navegador Microsoft Edge, acessado via engenharia reversa pela
+biblioteca `msedge-tts`. Não tem SLA, contrato de suporte, nem garantia
+de disponibilidade — a Microsoft pode bloquear ou mudar esse endpoint a
+qualquer momento, sem aviso. Ainda assim é uma biblioteca amplamente
+usada e mantida há tempo (na escolha entre alternativas: 320 estrelas,
+0 issues abertas, atualizada em jun/2026).
+
+**Plano C (documentado, NÃO implementado agora)**: se o Edge TTS parar
+de funcionar no futuro, o próximo passo é o **Google Cloud TTS**
+(descartado antes por fricção de billing/CPF — Davi já sabe lidar com
+esse processo agora, então deixa de ser bloqueio). Não implementar essa
+troca preventivamente; só executar se o Edge TTS realmente quebrar.
+
+**Regra permanente, sem fallback automático**: nenhuma troca de
+provedor/voz acontece por conta própria da IA. Se o Edge TTS falhar
+(erro ou qualidade), a IA deve **parar e reportar o resultado exato**.
 Só o usuário decide o próximo passo.
 
 ## Hierarquia entre documentos

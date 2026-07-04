@@ -14,6 +14,7 @@
     "fixture:teste": "tsx --env-file=.env.local scripts/gerar-fixture-real.ts",
     "tts-edge:teste": "tsx scripts/testar-tts-edge-isolado.ts",
     "tts-edge-masculinas:teste": "tsx scripts/testar-tts-edge-vozes-masculinas.ts",
+    "narracao:sintetizar": "tsx scripts/sintetizar-narracao-fixture.ts",
     "remotion:props": "tsx scripts/preparar-props-remotion.ts",
     "remotion:render": "remotion render remotion/src/index.ts LearnVideo scripts/output/video.mp4 --props=scripts/output/remotion-props.json"
   },
@@ -24,6 +25,7 @@
     "markmap-lib": "^0.18.12",
     "markmap-view": "^0.18.12",
     "msedge-tts": "^2.0.6",
+    "music-metadata": "^11.13.0",
     "next": "^16.2.10",
     "playwright": "^1.61.1",
     "react": "^19.2.7",
