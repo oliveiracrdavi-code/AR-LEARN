@@ -472,3 +472,33 @@ Não é carregado por padrão em cada sessão.
   credenciais pra rodar o teste real com a transcrição de mercado
   imobiliário (mesma da Fase 2) e confirmar (ou não) o suporte a
   português.
+- **Decisão travada**: Cloudflare Workers AI é a única ferramenta de
+  TTS do projeto — sem fallback automático pra OpenAI, Google Cloud TTS
+  ou qualquer outro provedor. Se o teste real falhar (mesmo depois de
+  conferir o catálogo completo/atual de modelos de áudio do Workers
+  AI), a IA deve parar e reportar o resultado exato, sem trocar de
+  provedor por conta própria — registrado em `docs/regras.md`.
+- Usuário cadastrou `CLOUDFLARE_ACCOUNT_ID`/`CLOUDFLARE_API_TOKEN` como
+  GitHub Secrets diretamente (sem colar no chat desta vez).
+- Recatalogado o catálogo de TTS do Workers AI antes do teste (pedido
+  explícito, pra não confiar na verificação anterior): continuam só 3
+  modelos — `@cf/deepgram/aura-1`, `@cf/deepgram/aura-2-en`/`aura-2-es`,
+  `@cf/myshell-ai/melotts` — nenhum com variante em português.
+- **Teste isolado ("texto em português -> áudio") rodado via GitHub
+  Actions** (workflow temporário `teste-tts-temp.yml`, PR isolado #3,
+  mesmo padrão de sempre):
+  - 1ª tentativa: `ENOENT` (script não criava `scripts/output/`) —
+    corrigido.
+  - 2ª tentativa: **HTTP 500** da própria Cloudflare (`AiError:
+    Internal server error`, código 3043) — erro do lado deles, não
+    "Invalid input" de idioma não suportado.
+  - 3ª tentativa: **sucesso** — a API aceitou `lang: "pt"` e devolveu
+    áudio. **Detalhe técnico**: a resposta é WAV (RIFF/WAVE, PCM 16
+    bits, 44.1kHz mono), não MP3 como a documentação da Cloudflare
+    afirma — sem impacto funcional, só ajustar a extensão/expectativa
+    no código. 11,88s de áudio para a frase de teste (~190
+    caracteres).
+  - Áudio enviado ao usuário pra ouvir e confirmar a pronúncia —
+    **ainda não confirmado**; eu não consigo julgar fonética
+    sozinho. Nenhuma decisão de prosseguir com a troca completa foi
+    tomada até essa confirmação chegar.
