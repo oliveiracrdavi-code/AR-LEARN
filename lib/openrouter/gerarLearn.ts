@@ -1,7 +1,7 @@
 import { learnContratoSchema, type LearnContrato } from "./schema";
 import { SYSTEM_PROMPT_CEREBRO } from "./systemPrompt";
 import { logComTimestamp } from "../util/log";
-import { DURACAO_MINIMA_VIDEO_SEG } from "../constantes";
+import { DURACAO_MINIMA_VIDEO_SEG, TAXA_CARACTERES_POR_SEGUNDO_ANTONIO } from "../constantes";
 
 // Modelo barato via OpenRouter (Manual das Ferramentas, seção 5).
 // Configurável por env var pra trocar sem tocar em código.
@@ -98,22 +98,32 @@ export async function gerarLearnDoEpisodio(
       const validado = learnContratoSchema.safeParse(parsed);
 
       if (validado.success) {
+        // O duracao_seg que o LLM escreve não é confiável (testado: o
+        // modelo "chuta" por intuição mesmo com a fórmula explícita no
+        // prompt, entregando ~10-12 char/seg em vez dos ~17,8 char/seg
+        // reais do Antonio). Por isso o valor usado no gate é
+        // RECALCULADO aqui a partir do texto_narrado real de cada
+        // cena, sobrescrevendo o que veio da LLM.
+        for (const cena of validado.data.learn.video_roteiro.cenas) {
+          cena.duracao_seg = cena.texto_narrado.length / TAXA_CARACTERES_POR_SEGUNDO_ANTONIO;
+        }
+
         const duracaoTotal = validado.data.learn.video_roteiro.cenas.reduce(
           (soma, cena) => soma + cena.duracao_seg,
           0
         );
 
-        console.log(`  [tentativa ${tentativa}] duração do roteiro: ${duracaoTotal}s (piso: ${DURACAO_MINIMA_VIDEO_SEG}s)`);
+        console.log(`  [tentativa ${tentativa}] duração do roteiro (recalculada por caracteres): ${duracaoTotal.toFixed(2)}s (piso: ${DURACAO_MINIMA_VIDEO_SEG}s)`);
 
         if (duracaoTotal >= DURACAO_MINIMA_VIDEO_SEG) {
           return validado.data;
         }
 
-        ultimoErro = `duração total do roteiro (${duracaoTotal}s) abaixo do piso de ${DURACAO_MINIMA_VIDEO_SEG}s`;
+        ultimoErro = `duração total do roteiro (${duracaoTotal.toFixed(2)}s, recalculada pelos caracteres reais) abaixo do piso de ${DURACAO_MINIMA_VIDEO_SEG}s`;
         mensagens.push({ role: "assistant", content: resposta });
         mensagens.push({
           role: "user",
-          content: `A soma de duracao_seg das cenas ficou em ${duracaoTotal}s, abaixo do mínimo de ${DURACAO_MINIMA_VIDEO_SEG}s (7 minutos). Devolva o JSON de novo, expandindo o video_roteiro com mais cenas/detalhe do que já está na transcrição — sem inventar fatos que não estão nela — até atingir o piso. Sem cercas de markdown.`,
+          content: `A duração real (calculada pelos caracteres de texto_narrado, não pelo duracao_seg que você escreveu) ficou em ${duracaoTotal.toFixed(2)}s, abaixo do mínimo de ${DURACAO_MINIMA_VIDEO_SEG}s (7 minutos). Devolva o JSON de novo, expandindo o video_roteiro com MAIS TEXTO/detalhe do que já está na transcrição — sem inventar fatos que não estão nela — até bater pelo menos ~8.200 caracteres somados de texto_narrado. Sem cercas de markdown.`,
         });
         continue;
       }

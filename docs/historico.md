@@ -859,3 +859,26 @@ saiu com 355s (5,9min), abaixo do piso de 420s (7min), mesmo com a
   acerta o alvo — nenhum novo render completo deve ser disparado sem
   autorização explícita dele, mesmo com a causa e a correção já
   diagnosticadas e aprovadas.
+- **A fórmula no prompt (17,8 char/seg) NÃO foi suficiente**: rodando o
+  teste barato (job `testar-formula-duracao-cerebro`), o gate passou
+  (481,2s, acima do alvo de 460s) — mas analisando o JSON retornado, a
+  taxa que o LLM realmente aplicou foi ~10,06 char/seg (4.841
+  caracteres ÷ 481,2s), quase igual à taxa antiga (~11,9-11,93), não os
+  17,8 char/seg pedidos explicitamente no prompt. O LLM não segue
+  aritmética por-cena de forma confiável mesmo com a fórmula explícita
+  — ele continua "chutando" por intuição. Se o render completo tivesse
+  sido disparado nesse resultado, a previsão real (4.841 ÷ 17,8 ≈
+  272s) mostra que teria FALHADO de novo, abaixo do piso.
+- **Correção definitiva: recálculo determinístico em CÓDIGO, não no
+  prompt.** `lib/openrouter/gerarLearn.ts` agora sobrescreve
+  `cena.duracao_seg` de cada cena logo após a validação do schema,
+  calculando `texto_narrado.length / TAXA_CARACTERES_POR_SEGUNDO_ANTONIO`
+  (nova constante em `lib/constantes.ts`, valor 17,8) — o número que o
+  LLM escreve em `duracao_seg` é descartado e nunca usado no gate. A
+  lógica de retry/expansão (`MAX_TENTATIVAS`, mensagem pedindo mais
+  conteúdo) foi mantida sem mudança — só a FONTE do número mudou, de
+  "o que o LLM disse" para "o que o código calculou a partir do texto
+  real". `systemPrompt.ts` foi ajustado para não pedir mais aritmética
+  ao modelo (o `duracao_seg` que ele escrever é ignorado); em vez
+  disso, instrui a escrever pelo menos ~8.200 caracteres somados de
+  `texto_narrado` (o equivalente a ~460s na taxa real do Antonio).
