@@ -14,3 +14,16 @@ export const DURACAO_MINIMA_VIDEO_SEG = 420;
 // texto_narrado real de cada cena, sobrescrevendo o que o LLM
 // escreveu, em vez de confiar na aritmética embutida no prompt.
 export const TAXA_CARACTERES_POR_SEGUNDO_ANTONIO = 17.8;
+
+// Duração de uma cena de vídeo: piso ABSOLUTO de 5s; acima disso,
+// proporcional ao tempo de LEITURA confortável da legenda (não à
+// estimativa de narração). Taxa de leitura tranquila ~16 char/s (mais
+// lenta que a fala do Antonio a 17,8 — então a cena sempre dura o
+// bastante para a narração terminar sem corte). Determinístico.
+export const PISO_DURACAO_CENA_SEG = 5;
+export const TAXA_LEITURA_CPS = 16;
+
+export function duracaoCenaSegundos(legenda: string): number {
+  const porLeitura = legenda.length / TAXA_LEITURA_CPS;
+  return Math.max(PISO_DURACAO_CENA_SEG, porLeitura);
+}

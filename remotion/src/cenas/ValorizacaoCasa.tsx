@@ -21,7 +21,6 @@ const MARCOS = [
 
 export const ValorizacaoCasa: React.FC<PropsCena> = ({ texto }) => {
   const frame = useCurrentFrame();
-  const flutua = Math.sin(frame / 35) * 6;
 
   return (
     <FundoCena>
@@ -31,7 +30,7 @@ export const ValorizacaoCasa: React.FC<PropsCena> = ({ texto }) => {
             position: "relative",
             width: 820,
             height: 480,
-            transform: `translateY(${flutua}px)`,
+            transformStyle: "preserve-3d",
           }}
         >
           {/* Casa desenhada primeiro */}
@@ -61,6 +60,9 @@ export const ValorizacaoCasa: React.FC<PropsCena> = ({ texto }) => {
               extrapolateLeft: "clamp",
               extrapolateRight: "clamp",
             });
+            // Selo % em camada Z mais À FRENTE da casa (3.3), entrando
+            // com leve profundidade depois que a casa se desenhou; depois
+            // fica estável.
             return (
               <div
                 key={i}
@@ -68,12 +70,13 @@ export const ValorizacaoCasa: React.FC<PropsCena> = ({ texto }) => {
                   position: "absolute",
                   left: `${m.x}%`,
                   top: `${m.y}%`,
-                  transform: `translate(-50%, -50%) translateY(${(1 - p) * 20}px)`,
+                  transform: `perspective(1200px) translate(-50%, -50%) translateZ(${70 + (1 - p) * -120}px) rotateY(${(1 - p) * 12}deg)`,
                   opacity: p,
                   fontFamily: "Arial, Helvetica, sans-serif",
                   fontSize: 44,
                   fontWeight: 800,
                   color: COR_DESTAQUE,
+                  textShadow: "0 6px 14px rgba(0,0,0,0.5)",
                 }}
               >
                 {m.pct}

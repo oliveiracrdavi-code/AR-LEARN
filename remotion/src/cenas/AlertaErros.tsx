@@ -1,12 +1,13 @@
 import React from "react";
-import { spring, useCurrentFrame, useVideoConfig } from "remotion";
+import { interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
 import { FundoCena, Legenda, PalcoCentral, PropsCena } from "./_Base";
-import { EntradaSpring } from "../animacao/EntradaSpring";
+import { Entrada3D } from "../animacao/Entrada3D";
 import { COR_DESTAQUE, COR_FUNDO_CARTAO, COR_TEXTO } from "../cores";
 
-// visual_tipo alerta_erros: ícone de alerta "(!)" com spring de escala e
-// um leve tremor contínuo, e itens de "erro comum" surgindo um a um abaixo,
-// cada um com deslocamento em X na entrada.
+// visual_tipo alerta_erros (3.10): ícone de alerta "(!)" com spring de
+// escala e um "shake" curto na entrada que AMORTECE e para (não fica
+// tremendo pra sempre). Itens de erro entram um a um em camada Z
+// levemente diferente; depois, parados.
 
 const ERROS = [
   "Comprar sem checar a documentação",
@@ -19,13 +20,17 @@ export const AlertaErros: React.FC<PropsCena> = ({ texto }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const escala = spring({ frame, fps, config: { damping: 8, mass: 0.8 } });
-  // Tremor sutil e contínuo do ícone (nunca 100% parado).
-  const tremor = Math.sin(frame / 3) * 2;
+  // Shake que AMORTECE: forte na entrada, zera após ~1s. Depois, parado.
+  const decaimento = interpolate(frame, [0, 30], [1, 0], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
+  const tremor = Math.sin(frame / 3) * 3 * decaimento;
 
   return (
     <FundoCena>
       <PalcoCentral>
-        <div style={{ display: "flex", alignItems: "center", gap: 70 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 70, transformStyle: "preserve-3d" }}>
           {/* Ícone de alerta */}
           <div
             style={{
@@ -47,36 +52,37 @@ export const AlertaErros: React.FC<PropsCena> = ({ texto }) => {
             !
           </div>
 
-          {/* Lista de erros aparecendo um a um */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+          {/* Lista de erros: cada item entra em camada Z levemente
+              diferente com leve rotateX, sequencial; depois parado. */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 18, transformStyle: "preserve-3d" }}>
             {ERROS.map((erro, i) => (
-              <EntradaSpring key={i} delay={20 + i * 14} from="direita" distancia={80}>
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 16,
-                    backgroundColor: COR_FUNDO_CARTAO,
-                    borderLeft: `5px solid ${COR_DESTAQUE}`,
-                    borderRadius: 10,
-                    padding: "16px 24px",
-                    minWidth: 560,
-                  }}
-                >
-                  <span style={{ fontSize: 30, color: COR_DESTAQUE, fontWeight: 800 }}>
-                    ✕
-                  </span>
-                  <span
+              <div key={i} style={{ transform: `translateZ(${(i % 2) * 30}px)` }}>
+                <Entrada3D delay={22 + i * 12} eixo="x" angulo={12} distanciaZ={140}>
+                  <div
                     style={{
-                      color: COR_TEXTO,
-                      fontFamily: "Arial, Helvetica, sans-serif",
-                      fontSize: 26,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 16,
+                      backgroundColor: COR_FUNDO_CARTAO,
+                      borderLeft: `5px solid ${COR_DESTAQUE}`,
+                      borderRadius: 10,
+                      padding: "16px 24px",
+                      minWidth: 560,
                     }}
                   >
-                    {erro}
-                  </span>
-                </div>
-              </EntradaSpring>
+                    <span style={{ fontSize: 30, color: COR_DESTAQUE, fontWeight: 800 }}>✕</span>
+                    <span
+                      style={{
+                        color: COR_TEXTO,
+                        fontFamily: "Arial, Helvetica, sans-serif",
+                        fontSize: 26,
+                      }}
+                    >
+                      {erro}
+                    </span>
+                  </div>
+                </Entrada3D>
+              </div>
             ))}
           </div>
         </div>

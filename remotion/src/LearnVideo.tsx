@@ -4,7 +4,7 @@ import { TransitionSeries, linearTiming } from "@remotion/transitions";
 import { z } from "zod";
 import { COR_FUNDO, COR_DESTAQUE, VISUAL_TIPOS } from "./cores";
 import { CENAS_POR_TIPO, GenericoFallback, SkylineAbertura } from "./cenas";
-import { transicaoProfundidade } from "./animacao/transicaoProfundidade";
+import { transicaoVariada } from "./animacao/transicaoProfundidade";
 
 // Duração de cada transição entre cenas: ~800ms (topo da faixa 400-800ms),
 // com easing suave — espalha o movimento da troca por mais frames, para a
@@ -167,7 +167,7 @@ export function LearnVideo({ titulo, trilha, modulo, cenas, audioSrc }: LearnVid
                   durationInFrames: t,
                   easing: Easing.inOut(Easing.ease),
                 })}
-                presentation={transicaoProfundidade()}
+                presentation={transicaoVariada(indice)}
               />
               <TransitionSeries.Sequence durationInFrames={dur}>
                 <CenaView cena={cena} duracaoFrames={dur} />

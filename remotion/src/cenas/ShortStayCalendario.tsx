@@ -1,7 +1,7 @@
 import React from "react";
 import { interpolate, useCurrentFrame } from "remotion";
 import { FundoCena, Legenda, PalcoCentral, PropsCena } from "./_Base";
-import { EntradaSpring } from "../animacao/EntradaSpring";
+import { Entrada3D } from "../animacao/Entrada3D";
 import { IconeCama } from "../icones/Icones";
 import { COR_DESTAQUE, COR_FUNDO_CARTAO, COR_TEXTO } from "../cores";
 
@@ -20,21 +20,18 @@ const RESERVADO = new Set([2, 3, 4, 8, 9, 12, 13, 14, 18, 19, 22, 23, 24, 25, 30
 
 export const ShortStayCalendario: React.FC<PropsCena> = ({ texto }) => {
   const frame = useCurrentFrame();
-  const cama = 1 + Math.sin(frame / 24) * 0.03;
 
   return (
     <FundoCena>
       <PalcoCentral>
-        <div style={{ display: "flex", alignItems: "center", gap: 70 }}>
-          {/* Cama */}
-          <EntradaSpring from="esquerda" escalaInicial={0.5}>
-            <div style={{ transform: `scale(${cama})` }}>
-              <IconeCama tamanho={160} />
-            </div>
-          </EntradaSpring>
+        <div style={{ display: "flex", alignItems: "center", gap: 70, transformStyle: "preserve-3d" }}>
+          {/* Cama — entra em profundidade, depois estática */}
+          <Entrada3D eixo="y" angulo={14} distanciaZ={240} sombra>
+            <IconeCama tamanho={160} />
+          </Entrada3D>
 
           {/* Calendário */}
-          <EntradaSpring delay={8} from="direita">
+          <Entrada3D delay={10} eixo="y" angulo={12} distanciaZ={240}>
             <div
               style={{
                 backgroundColor: COR_FUNDO_CARTAO,
@@ -98,7 +95,7 @@ export const ShortStayCalendario: React.FC<PropsCena> = ({ texto }) => {
                 })}
               </div>
             </div>
-          </EntradaSpring>
+          </Entrada3D>
         </div>
       </PalcoCentral>
       <Legenda texto={texto} />

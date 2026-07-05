@@ -2,7 +2,6 @@ import React from "react";
 import { Img, interpolate, spring, staticFile, useCurrentFrame, useVideoConfig } from "remotion";
 import { FundoCena, Legenda, PalcoCentral, PropsCena } from "./_Base";
 import { LineArtDraw } from "../animacao/LineArtDraw";
-import { EntradaSpring } from "../animacao/EntradaSpring";
 import { COR_DESTAQUE } from "../cores";
 
 // Cena de abertura (visual_tipo skyline_abertura): logo entrando com
@@ -21,13 +20,15 @@ export const SkylineAbertura: React.FC<PropsCena> = ({ texto }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
-  const escalaLogo = spring({ frame, fps, config: { damping: 12, mass: 1 } });
-  const larguraSublinhado = interpolate(frame, [18, 45], [0, 420], {
+  // Logo (3.1): vem de LONGE no eixo Z, crescendo, com leve rotateY (~12°)
+  // que se acomoda a 0° — profundidade na entrada, depois ESTÁVEL.
+  const t = spring({ frame, fps, durationInFrames: 26, config: { damping: 200 } });
+  const zLogo = -420 * (1 - t);
+  const rotLogo = 12 * (1 - t);
+  const larguraSublinhado = interpolate(frame, [22, 48], [0, 420], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
-  // Skyline pulsa de leve pra sempre ter movimento.
-  const flutua = Math.sin(frame / 40) * 8;
 
   return (
     <FundoCena>
@@ -37,15 +38,17 @@ export const SkylineAbertura: React.FC<PropsCena> = ({ texto }) => {
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
+            transformStyle: "preserve-3d",
           }}
         >
           <Img
             src={staticFile("logo-ar.jpg")}
             style={{
               height: 150,
-              transform: `scale(${escalaLogo})`,
-              opacity: escalaLogo,
+              transform: `perspective(1400px) translateZ(${zLogo}px) rotateY(${rotLogo}deg)`,
+              opacity: Math.min(1, t * 1.3),
               borderRadius: 12,
+              boxShadow: "0 16px 30px rgba(0,0,0,0.5)",
             }}
           />
           <div
@@ -57,26 +60,21 @@ export const SkylineAbertura: React.FC<PropsCena> = ({ texto }) => {
               borderRadius: 3,
             }}
           />
-          <EntradaSpring delay={30} from="baixo" style={{ marginTop: 40 }}>
-            <div
-              style={{
-                width: 760,
-                height: 200,
-                transform: `translateY(${flutua}px)`,
-              }}
-            >
-              <LineArtDraw
-                paths={[
-                  { d: SKYLINE_D, comprimento: 700 },
-                  { d: JANELAS_D, comprimento: 90 },
-                ]}
-                viewBox="0 0 100 90"
-                delay={34}
-                duracao={40}
-                strokeWidth={1.4}
-              />
-            </div>
-          </EntradaSpring>
+          {/* Skyline em camada Z mais distante, se desenha via
+              stroke-dashoffset e PARA quando o traço termina (sem
+              parallax contínuo). */}
+          <div style={{ width: 760, height: 200, marginTop: 40, transform: "translateZ(-140px)" }}>
+            <LineArtDraw
+              paths={[
+                { d: SKYLINE_D, comprimento: 700 },
+                { d: JANELAS_D, comprimento: 90 },
+              ]}
+              viewBox="0 0 100 90"
+              delay={30}
+              duracao={44}
+              strokeWidth={1.4}
+            />
+          </div>
         </div>
       </PalcoCentral>
       <Legenda texto={texto} />

@@ -1020,3 +1020,39 @@ cada 0,5s (mais rígido que os 2s da v1) antes de qualquer render caro:
   0,5s): 3 critérios — sem congelamento, sem trecho > 1s abaixo de 1%, e
   sem pico > 2x os vizinhos (transição suave, não corte). PASSOU nos três.
   Stills de 3 cenas + 1 transição auditados visualmente (densidade + 3D).
+
+## 2026-07-05 — Animação v3: 3D na entrada/transição, cenas ESTÁVEIS
+Davi detalhou tratamento por componente (12) e inverteu o princípio da
+v2: a v2 usava movimento contínuo (deriva/câmera) para bater um piso de
+frame-diff — mas isso virou "balanço" perceptível. v3: profundidade 3D e
+movimento acontecem na ENTRADA e na TRANSIÇÃO; depois o elemento fica
+ESTÁVEL. O piso de movimento da v2 foi abandonado; o anti-"imagem morta"
+passa a ser só sparkles discretos.
+
+- **Removido**: deriva circular do elemento central, câmera "viva" em
+  loop, grade de linhas e grade de pontos de fundo (seção 6).
+- **Entrada3D** (`animacao/Entrada3D.tsx`): entrada com rotateY OU rotateX
+  (8-20°) + translateZ + opacidade, gradual, glint 1x e sombra opcionais;
+  SEM idle contínuo. Adotada nos 12 componentes.
+- **Tratamento por componente** (seção 3): skyline (logo vem do Z + rotateY,
+  skyline para de mexer após desenhar), oferta (balança "pousa" com
+  rotateX, inclinação = 1 interpolação e para, ícones à frente em Z),
+  valorização (selo % à frente da casa, entra depois), gráfico (barras em
+  leque de Z, rótulos com rotateX sequencial), financiamento (chips em Z
+  distintos, calc estática), localização (anéis expandem 1x em camadas Z,
+  pin à frente), renda/short-stay (cifrão/ícones chegam em profundidade,
+  casa/cama estáticas), ciclo (SEM giro 360°: setor ativo avança em Z e
+  recua), alerta (shake amortece e para, itens em Z), checklist (item chega
+  em 3D e só então o check desenha), genérico (bloco entra em Z, para).
+- **Transições variadas** (`transicaoProfundidade.tsx`): 3 apresentações
+  3D alternando por índice — profundidade (recua/avança em Z), página
+  (rotateY tipo página virando), suave (fade + leve Z). 400-800ms, easing.
+- **Duração por leitura** (`lib/constantes.ts` `duracaoCenaSegundos`):
+  max(5s, caracteres da legenda ÷ 16 char/s). Determinístico; usado no
+  clipe/verifier. Como 16 < 17,8 (fala do Antonio), a cena sempre dura o
+  bastante para a narração terminar sem corte.
+- **Verifier v3** (`verificar-animacao.ts`, 0,5s): 3 checks — sem
+  congelado (zero), sem corte seco (pico >4x vizinhos E >4%), e sem
+  oscilação contínua (MEDIANA < 1,2%). Resultado: PASSOU, média 1,13% /
+  **mediana 0,25%** (holds calmos = estável). Stills das 3 transições
+  auditados: profundidade 3D real (rotação de página + crossover em Z).

@@ -1,7 +1,7 @@
 import React from "react";
 import { interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
 import { FundoCena, Legenda, PalcoCentral, PropsCena } from "./_Base";
-import { EntradaSpring } from "../animacao/EntradaSpring";
+import { Entrada3D } from "../animacao/Entrada3D";
 import {
   IconeArvore,
   IconeEscola,
@@ -28,25 +28,30 @@ const POIS: { Icone: React.FC<{ tamanho?: number }>; ang: number }[] = [
 export const LocalizacaoMapa: React.FC<PropsCena> = ({ texto }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const escalaPin = spring({ frame, fps, config: { damping: 10 } });
+  const escalaPin = spring({ frame, fps, durationInFrames: 22, config: { damping: 200 } });
 
-  // Três ondas concêntricas em loop contínuo (nunca param).
-  const ondas = [0, 1, 2].map((i) => {
-    const fase = ((frame + i * 30) % 90) / 90; // 0→1 ciclando
+  // Três anéis (raio de influência) que se EXPANDEM UMA VEZ até um raio
+  // fixo (não em loop) — cada um numa camada Z mais AO FUNDO conforme é
+  // mais externo (profundidade real ao crescer). Depois, estáticos.
+  const aneis = [0, 1, 2].map((i) => {
+    const delay = 6 + i * 8;
+    const p = interpolate(frame, [delay, delay + 26], [0, 1], {
+      extrapolateLeft: "clamp",
+      extrapolateRight: "clamp",
+    });
     return {
-      escala: interpolate(fase, [0, 1], [0.3, 1.8]),
-      opacidade: interpolate(fase, [0, 1], [0.5, 0], {
-        extrapolateRight: "clamp",
-      }),
+      escala: interpolate(p, [0, 1], [0.3, 0.8 + i * 0.5]),
+      opacidade: interpolate(p, [0, 1], [0, 0.55 - i * 0.13]),
+      z: -i * 70, // externo mais ao fundo
     };
   });
 
   return (
     <FundoCena>
       <PalcoCentral>
-        <div style={{ position: "relative", width: 640, height: 480 }}>
-          {/* Ondas concêntricas */}
-          {ondas.map((o, i) => (
+        <div style={{ position: "relative", width: 640, height: 480, transformStyle: "preserve-3d" }}>
+          {/* Anéis concêntricos em camadas Z */}
+          {aneis.map((o, i) => (
             <div
               key={i}
               style={{
@@ -60,12 +65,12 @@ export const LocalizacaoMapa: React.FC<PropsCena> = ({ texto }) => {
                 borderRadius: "50%",
                 border: `3px solid ${COR_DESTAQUE}`,
                 opacity: o.opacidade,
-                transform: `scale(${o.escala})`,
+                transform: `translateZ(${o.z}px) scale(${o.escala})`,
               }}
             />
           ))}
 
-          {/* POIs dentro do raio */}
+          {/* POIs dentro do raio — entram com leve profundidade, sequencial */}
           {POIS.map((poi, i) => {
             const rad = (poi.ang * Math.PI) / 180;
             const raio = 190;
@@ -81,20 +86,21 @@ export const LocalizacaoMapa: React.FC<PropsCena> = ({ texto }) => {
                   transform: "translate(-50%, -50%)",
                 }}
               >
-                <EntradaSpring delay={25 + i * 9} from="nenhuma" escalaInicial={0.2}>
+                <Entrada3D delay={30 + i * 9} eixo="y" angulo={12} distanciaZ={180}>
                   <poi.Icone tamanho={58} />
-                </EntradaSpring>
+                </Entrada3D>
               </div>
             );
           })}
 
-          {/* Pin central */}
+          {/* Pin central — camada mais À FRENTE (Z positivo) */}
           <div
             style={{
               position: "absolute",
               left: 320,
               top: 240,
-              transform: `translate(-50%, -70%) scale(${escalaPin})`,
+              transform: `translate(-50%, -70%) translateZ(90px) scale(${escalaPin})`,
+              filter: "drop-shadow(0 14px 18px rgba(0,0,0,0.5))",
             }}
           >
             <IconePin tamanho={92} />

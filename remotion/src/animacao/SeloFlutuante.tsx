@@ -2,11 +2,10 @@ import React from "react";
 import { spring, useCurrentFrame, useVideoConfig } from "remotion";
 import { COR_DESTAQUE, COR_TEXTO } from "../cores";
 
-// Selo/badge de apoio (número, %, ou termo curto) que entra com spring e
-// flutua de leve continuamente. Elemento SECUNDÁRIO da composição —
-// menor e mais discreto que o principal, para dar densidade sem poluir
-// (hierarquia visual clara). Use só quando fizer sentido com o que a
-// cena narra.
+// Selo/badge de apoio (número, %, termo curto). v3: entra com escala +
+// leve profundidade (translateZ) e ACOMODA — depois ESTÁVEL (sem
+// flutuação contínua). Elemento SECUNDÁRIO: menor e discreto, hierarquia
+// clara sob o principal. (Nome mantido por compatibilidade de import.)
 export const SeloFlutuante: React.FC<{
   rotulo?: string;
   valor: string;
@@ -16,21 +15,26 @@ export const SeloFlutuante: React.FC<{
 }> = ({ rotulo, valor, delay = 0, cor = COR_DESTAQUE, style }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const t = spring({ frame: frame - delay, fps, config: { damping: 13 } });
-  const flut = Math.sin((frame - delay) / 30) * 6 * t;
+  const t = spring({
+    frame: frame - delay,
+    fps,
+    durationInFrames: 20,
+    config: { damping: 200 },
+  });
+  const z = -120 * (1 - t);
 
   return (
     <div
       style={{
-        transform: `translateY(${flut}px) scale(${0.6 + 0.4 * t})`,
-        opacity: Math.min(1, t * 1.5),
+        transform: `perspective(1200px) translateZ(${z}px) scale(${0.7 + 0.3 * t})`,
+        opacity: Math.min(1, t * 1.3),
         backgroundColor: "rgba(223,160,44,0.12)",
         border: `1.5px solid ${cor}`,
         borderRadius: 12,
         padding: rotulo ? "8px 16px" : "6px 14px",
         textAlign: "center",
         fontFamily: "Arial, Helvetica, sans-serif",
-        backdropFilter: "blur(2px)",
+        boxShadow: "0 10px 20px rgba(0,0,0,0.35)",
         ...style,
       }}
     >

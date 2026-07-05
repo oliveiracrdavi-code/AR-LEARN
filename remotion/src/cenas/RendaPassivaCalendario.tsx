@@ -15,52 +15,50 @@ const CICLO = 45; // frames por "mês" — cadência lenta
 export const RendaPassivaCalendario: React.FC<PropsCena> = ({ texto }) => {
   const frame = useCurrentFrame();
 
-  // Cifrão que "cai" na casa a cada CICLO frames.
+  // Cifrão CHEGA (não "cai") a cada CICLO frames: vem de trás da casa
+  // (translateZ negativo) para a frente + leve rotateY, e some — reforça
+  // "renda chegando" sem piscar/balançar. Depois some até o próximo.
   const faseCiclo = (frame % CICLO) / CICLO; // 0→1
-  const quedaY = interpolate(faseCiclo, [0, 0.6], [-140, 40], {
+  const zCifra = interpolate(faseCiclo, [0, 0.5], [-220, 60], {
+    extrapolateRight: "clamp",
+  });
+  const rotCifra = interpolate(faseCiclo, [0, 0.5], [18, 0], {
     extrapolateRight: "clamp",
   });
   const opacidadeCifra = interpolate(
     faseCiclo,
-    [0, 0.1, 0.6, 0.9],
+    [0, 0.12, 0.6, 0.9],
     [0, 1, 1, 0],
     { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
   );
 
   // Contador de meses acumulados (renda que se acumula).
   const mesesAcumulados = Math.floor(frame / CICLO) + 1;
-  const flutuaCasa = Math.sin(frame / 30) * 6;
 
   return (
     <FundoCena>
       <PalcoCentral>
-        <div style={{ position: "relative", width: 560, height: 460 }}>
-          {/* Cifrão caindo */}
+        <div style={{ position: "relative", width: 560, height: 460, transformStyle: "preserve-3d" }}>
+          {/* Cifrão chegando em profundidade */}
           <div
             style={{
               position: "absolute",
               left: 280,
-              top: 120,
-              transform: `translate(-50%, ${quedaY}px)`,
+              top: 150,
+              transform: `perspective(1200px) translate(-50%, 0) translateZ(${zCifra}px) rotateY(${rotCifra}deg)`,
               opacity: opacidadeCifra,
               fontSize: 84,
               fontWeight: 800,
               color: COR_DESTAQUE,
               fontFamily: "Arial, Helvetica, sans-serif",
+              textShadow: "0 8px 16px rgba(0,0,0,0.5)",
             }}
           >
             $
           </div>
 
-          {/* Casa que recebe */}
-          <div
-            style={{
-              position: "absolute",
-              left: 280,
-              top: 250,
-              transform: `translate(-50%, ${flutuaCasa}px)`,
-            }}
-          >
+          {/* Casa que recebe — estática */}
+          <div style={{ position: "absolute", left: 280, top: 250, transform: "translate(-50%, 0)" }}>
             <IconeCasa tamanho={150} />
           </div>
 

@@ -6,38 +6,43 @@
 import { bundle } from "@remotion/bundler";
 import { selectComposition, renderMedia } from "@remotion/renderer";
 import path from "node:path";
+import { duracaoCenaSegundos } from "../lib/constantes";
 
 const CHROME = "/opt/pw-browsers/chromium_headless_shell-1194/chrome-linux/headless_shell";
 
 // 3 cenas que mostram técnicas de animação DIFERENTES + os ícones SVG
 // novos. O intro (skyline_abertura, ~5s) entra automático antes delas.
+// duracao_seg é CALCULADA pela fórmula de leitura da legenda (piso 5s),
+// não um número fixo.
+const CENAS_BRUTAS = [
+  {
+    texto_narrado:
+      "Repare como o preço médio do metro quadrado subiu, ano após ano, nessa região. Quem entrou cedo, construiu patrimônio.",
+    visual: "Gráfico de preços por ano",
+    visual_tipo: "grafico_precos_anos",
+  },
+  {
+    texto_narrado:
+      "O mercado se move em ciclos: aquecimento, estabilização, retração e recuperação. Entender a fase separa o investidor do apostador.",
+    visual: "Ciclo do mercado",
+    visual_tipo: "ciclo_mercado_circular",
+  },
+  {
+    texto_narrado:
+      "Pouca oferta e muita procura empurram o preço para cima. É a lei mais básica, e a mais lucrativa, do mercado imobiliário.",
+    visual: "Balança de oferta e demanda",
+    visual_tipo: "oferta_demanda_balanca",
+  },
+];
+
 const PROPS = {
   titulo: "Como funciona o mercado imobiliário",
   trilha: "Fundamentos",
   modulo: "Mercado Imobiliário",
-  cenas: [
-    {
-      texto_narrado:
-        "Repare como o preço médio do metro quadrado subiu, ano após ano, nessa região. Quem entrou cedo, construiu patrimônio.",
-      duracao_seg: 7,
-      visual: "Gráfico de preços por ano",
-      visual_tipo: "grafico_precos_anos",
-    },
-    {
-      texto_narrado:
-        "O mercado se move em ciclos: aquecimento, estabilização, retração e recuperação. Entender a fase é o que separa o investidor do apostador.",
-      duracao_seg: 7,
-      visual: "Ciclo do mercado",
-      visual_tipo: "ciclo_mercado_circular",
-    },
-    {
-      texto_narrado:
-        "Pouca oferta e muita procura empurram o preço para cima. É a lei mais básica, e a mais lucrativa, do mercado imobiliário.",
-      duracao_seg: 7,
-      visual: "Balança de oferta e demanda",
-      visual_tipo: "oferta_demanda_balanca",
-    },
-  ],
+  cenas: CENAS_BRUTAS.map((c) => ({
+    ...c,
+    duracao_seg: duracaoCenaSegundos(c.texto_narrado),
+  })),
 };
 
 async function main() {

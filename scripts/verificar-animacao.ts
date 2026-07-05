@@ -16,6 +16,7 @@ import pixelmatch from "pixelmatch";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
+import { duracaoCenaSegundos } from "../lib/constantes";
 
 // Chrome completo pré-instalado no ambiente (Playwright). Remotion
 // normalmente baixaria o próprio Chrome Headless Shell; aqui apontamos
@@ -24,15 +25,19 @@ import os from "node:os";
 // que o Remotion espera) — o binário `chrome` completo removeu o old
 // headless mode e não sobe. O headless_shell do Playwright serve.
 const CHROME = "/opt/pw-browsers/chromium_headless_shell-1194/chrome-linux/headless_shell";
-// Amostragem a cada 0,5s (critério das diretrizes de animação v2). Dois
-// pisos objetivos além do "diferença zero":
-//   - PISO_MOVIMENTO: nenhum trecho > 1s pode ficar abaixo desse % de
-//     pixels alterados (senão "parece parado" mesmo sem congelar).
-//   - RAZAO_PICO: nenhum pico pode ser > 2x a média dos vizinhos (isso
-//     seria corte seco; transição suave fica dentro de 2x).
+// Amostragem a cada 0,5s. Critérios v3 (diretrizes de Davi — o piso de
+// movimento da v2 foi ABANDONADO de propósito: agora as cenas ficam
+// ESTÁVEIS depois da entrada, movimento só nas entradas/transições):
+//   1. CONGELADO: nenhum intervalo com diferença ZERO.
+//   2. CORTE SECO: nenhum salto isolado desproporcional (pico >> vizinhos
+//      E absoluto alto) — seria transição seca.
+//   3. OSCILAÇÃO CONTÍNUA (o "balanço"): a MEDIANA do movimento tem que
+//      ser BAIXA (holds calmos, com só uns picos nas trocas). Mediana
+//      alta = a tela toda se mexendo o tempo todo = balanço, reprovado.
 const SEGUNDOS_ENTRE_AMOSTRAS = 0.5;
-const PISO_MOVIMENTO_PCT = 1.0;
-const RAZAO_PICO = 2.0;
+const RAZAO_CORTE = 4.0; // pico > 4x vizinhos ...
+const ABS_CORTE_PCT = 4.0; // ... E acima de 4% = corte seco
+const MEDIANA_MAX_PCT = 1.2; // mediana acima disso = oscilação contínua
 
 // Props curtas de propósito, cobrindo vários visual_tipo diferentes —
 // testa o dispatcher inteiro (cada cena renderiza um componente
@@ -99,6 +104,12 @@ async function main() {
   const inputProps = propsArg
     ? JSON.parse(await readFile(propsArg, "utf-8"))
     : PROPS_VERIFICACAO;
+
+  // Duração de cada cena pela fórmula de leitura (piso 5s) — testa o
+  // mesmo cálculo determinístico usado no clipe/render real.
+  for (const c of inputProps.cenas) {
+    c.duracao_seg = duracaoCenaSegundos(c.texto_narrado);
+  }
 
   console.log("Empacotando o projeto Remotion (bundle)...");
   const serveUrl = await bundle({ entryPoint: path.resolve("remotion/src/index.ts") });
@@ -169,10 +180,9 @@ async function main() {
       });
     }
 
-    // Análise dos 3 critérios.
+    // Análise dos 3 critérios v3.
     const paradosZero: string[] = [];
-    const abaixoPiso: number[] = []; // índices abaixo do piso de movimento
-    const picos: string[] = [];
+    const cortes: string[] = [];
 
     amostras.forEach((am, i) => {
       // vizinhos = até 2 antes e 2 depois, exceto o próprio
@@ -181,58 +191,38 @@ async function main() {
         if (k !== i && k >= 0 && k < amostras.length) viz.push(amostras[k].pct);
       }
       const mediaViz = viz.reduce((s, v) => s + v, 0) / (viz.length || 1);
-      const ehPico = am.pct > RAZAO_PICO * mediaViz && mediaViz > 0.05;
+      // Corte seco = salto isolado desproporcional E absoluto alto.
+      const ehCorte = am.pct > RAZAO_CORTE * mediaViz && am.pct > ABS_CORTE_PCT;
       const marcas =
         (am.pct === 0 ? "  <<< PARADO (ZERO)" : "") +
-        (am.pct < PISO_MOVIMENTO_PCT ? "  < piso" : "") +
-        (ehPico ? `  <<< PICO (${(am.pct / mediaViz).toFixed(1)}x vizinhos)` : "");
-      console.log(
-        `  ${am.tA}s -> ${am.tB}s : ${am.pct.toFixed(3)}%${marcas}`
-      );
+        (ehCorte ? `  <<< CORTE SECO (${(am.pct / mediaViz).toFixed(1)}x vizinhos)` : "");
+      console.log(`  ${am.tA}s -> ${am.tB}s : ${am.pct.toFixed(3)}%${marcas}`);
       if (am.pct === 0) paradosZero.push(`${am.tA}->${am.tB}`);
-      if (am.pct < PISO_MOVIMENTO_PCT) abaixoPiso.push(i);
-      if (ehPico) picos.push(`${am.tA}->${am.tB} (${(am.pct / mediaViz).toFixed(1)}x)`);
+      if (ehCorte) cortes.push(`${am.tA}->${am.tB} (${(am.pct / mediaViz).toFixed(1)}x, ${am.pct.toFixed(1)}%)`);
     });
 
-    // Trechos contínuos > 1s abaixo do piso (3+ amostras de 0,5s = 1,5s).
-    const trechosLongos: string[] = [];
-    let run: number[] = [];
-    const fechaRun = () => {
-      if (run.length >= 3) {
-        trechosLongos.push(
-          `${amostras[run[0]].tA}s..${amostras[run[run.length - 1]].tB}s (${(
-            run.length * SEGUNDOS_ENTRE_AMOSTRAS
-          ).toFixed(1)}s)`
-        );
-      }
-      run = [];
-    };
-    for (let i = 0; i < amostras.length; i++) {
-      if (abaixoPiso.includes(i)) run.push(i);
-      else fechaRun();
-    }
-    fechaRun();
+    // Mediana do movimento (indicador de oscilação contínua / "balanço").
+    const ordenadas = amostras.map((a) => a.pct).sort((x, y) => x - y);
+    const mediana = ordenadas[Math.floor(ordenadas.length / 2)];
+    const mediaGeral = amostras.reduce((s, a) => s + a.pct, 0) / amostras.length;
 
     console.log("\n=== RESULTADO ===");
-    const mediaGeral = amostras.reduce((s, a) => s + a.pct, 0) / amostras.length;
-    console.log(`Média de movimento: ${mediaGeral.toFixed(2)}% por 0,5s`);
+    console.log(
+      `Média: ${mediaGeral.toFixed(2)}% | Mediana: ${mediana.toFixed(2)}% (holds calmos = mediana baixa)`
+    );
 
     let falhou = false;
     if (paradosZero.length) {
-      console.error(`FALHOU (congelado): ${paradosZero.length} intervalo(s) com diferença ZERO.`);
+      console.error(`FALHOU (congelado): ${paradosZero.length} intervalo(s) com diferença ZERO: ${paradosZero.join(", ")}.`);
       falhou = true;
     }
-    if (trechosLongos.length) {
-      console.error(
-        `FALHOU (movimento insuficiente): trecho(s) > 1s abaixo de ${PISO_MOVIMENTO_PCT}%: ${trechosLongos.join(
-          ", "
-        )}.`
-      );
+    if (cortes.length) {
+      console.error(`FALHOU (corte seco): salto(s) desproporcional(is): ${cortes.join(", ")}.`);
       falhou = true;
     }
-    if (picos.length) {
+    if (mediana > MEDIANA_MAX_PCT) {
       console.error(
-        `FALHOU (corte seco): pico(s) > ${RAZAO_PICO}x os vizinhos: ${picos.join(", ")}.`
+        `FALHOU (oscilação contínua / balanço): mediana ${mediana.toFixed(2)}% > ${MEDIANA_MAX_PCT}% — a tela se mexe demais o tempo todo, não só nas trocas.`
       );
       falhou = true;
     }
@@ -240,7 +230,7 @@ async function main() {
       process.exit(1);
     }
     console.log(
-      `PASSOU: sem congelamento, sem trecho > 1s abaixo de ${PISO_MOVIMENTO_PCT}%, e sem pico > ${RAZAO_PICO}x (transições suaves).`
+      "PASSOU: sem congelamento, sem corte seco, e sem oscilação contínua (holds estáveis, movimento nas entradas/trocas)."
     );
   } finally {
     await browser.close({ silent: true });
