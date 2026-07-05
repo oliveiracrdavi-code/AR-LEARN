@@ -1,0 +1,50 @@
+{
+  "name": "ar-learn",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint .",
+    "fase1:teste": "tsx --env-file=.env.local scripts/fase1-testar-episodio.ts",
+    "cerebro:teste": "tsx --env-file=.env.local scripts/testar-cerebro-isolado.ts",
+    "schema:teste": "tsx scripts/testar-schema-offline.ts",
+    "youtube:teste": "tsx scripts/testar-youtube-mock.ts",
+    "fixture:teste": "tsx --env-file=.env.local scripts/gerar-fixture-real.ts",
+    "tts-edge:teste": "tsx scripts/testar-tts-edge-isolado.ts",
+    "tts-edge-masculinas:teste": "tsx scripts/testar-tts-edge-vozes-masculinas.ts",
+    "narracao:sintetizar": "tsx scripts/sintetizar-narracao-fixture.ts",
+    "validacao-duracao:teste": "tsx scripts/testar-validacao-duracao.ts",
+    "remotion:props": "tsx scripts/preparar-props-remotion.ts",
+    "remotion:render": "remotion render remotion/src/index.ts LearnVideo scripts/output/video.mp4 --props=scripts/output/remotion-props.json"
+  },
+  "dependencies": {
+    "@remotion/cli": "^4.0.484",
+    "@supabase/supabase-js": "^2.110.0",
+    "d3": "^7.9.0",
+    "markmap-lib": "^0.18.12",
+    "markmap-view": "^0.18.12",
+    "msedge-tts": "^2.0.6",
+    "next": "^16.2.10",
+    "playwright": "^1.61.1",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "remotion": "^4.0.484",
+    "server-only": "^0.0.1",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3.2.0",
+    "@types/node": "^22.10.0",
+    "@types/pngjs": "^6.0.5",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "eslint": "^9.17.0",
+    "eslint-config-next": "^16.2.10",
+    "pixelmatch": "^7.2.0",
+    "pngjs": "^7.0.0",
+    "tsx": "^4.22.4",
+    "typescript": "^6.0.3"
+  }
+}

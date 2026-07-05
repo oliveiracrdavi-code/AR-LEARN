@@ -25,6 +25,9 @@ jobs:
       - name: Instalar dependências
         run: npm ci
 
+      - name: Validar piso de duração (teste rápido/barato, sem cérebro nem render)
+        run: npx tsx scripts/testar-validacao-duracao.ts
+
       - name: Instalar Chromium do Playwright (necessário pro PDF)
         run: npx playwright install --with-deps chromium
 
@@ -33,17 +36,20 @@ jobs:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
         run: npx tsx scripts/gerar-fixture-real.ts
 
-      - name: Gerar PDF de resumo
-        run: npx tsx scripts/testar-pdf.ts scripts/output/fixture-mercado-imobiliario.json scripts/output/fixture-mercado-imobiliario-mapa.svg
+      - name: Gerar PDF de resumo (só texto — mapa mental é ativo separado)
+        run: npx tsx scripts/testar-pdf.ts scripts/output/fixture-mercado-imobiliario.json
 
       - name: Sintetizar narração real (Edge TTS, pt-BR-AntonioNeural)
         run: npx tsx scripts/sintetizar-narracao-fixture.ts
 
       - name: Preparar props do Remotion (com narração real sincronizada)
-        run: npx tsx scripts/preparar-props-remotion.ts scripts/output/fixture-mercado-imobiliario.json scripts/output/remotion-props.json scripts/output/narracao-fixture.mp3 scripts/output/narracao-fixture-duracoes.json
+        run: npx tsx scripts/preparar-props-remotion.ts scripts/output/fixture-mercado-imobiliario.json scripts/output/remotion-props.json public/narracao-fixture.mp3 scripts/output/narracao-fixture-duracoes.json
+
+      - name: Conferir narração em public/ (diagnóstico)
+        run: ls -la public/
 
       - name: Renderizar vídeo (Remotion)
-        run: npx remotion render remotion/src/index.ts LearnVideo scripts/output/video.mp4 --props=scripts/output/remotion-props.json
+        run: npx remotion render remotion/src/index.ts LearnVideo scripts/output/video.mp4 --props=scripts/output/remotion-props.json --public-dir="$(pwd)/public"
 
       - name: Upload — vídeo renderizado
         uses: actions/upload-artifact@v4
@@ -67,4 +73,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: fixture-narracao
-          path: scripts/output/narracao-fixture.mp3
+          path: public/narracao-fixture.mp3
