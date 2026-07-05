@@ -968,3 +968,20 @@ esta tarefa e teste objetivo de frame-diff antes de qualquer render.
   frame-diff + auditoria de ícones) → Davi mergeia → só então renderizo
   um clipe curto (2-3 cenas) para aprovação visual dele → só depois o
   render completo. Nenhum render completo disparado sem aprovação.
+
+## 2026-07-05 — Clipe curto de aprovação + conflito de merge resolvido
+- **Merge do main na branch (PR #5)**: 3 workflows tinham conflito
+  add/add. Resolvidos com base no que é tecnicamente correto (não "o
+  mais novo cego"): narração em `public/` (não `scripts/output/` —
+  `staticFile()` do Remotion só serve de `public/`; fora dá 404),
+  PDF só-texto (mapa mental é ativo separado), Edge TTS (Cloudflare foi
+  reprovado). Davi tinha lembrado o caminho da narração invertido;
+  rastreei os 3 scripts (sintetizar → preparar-props → LearnVideo) +
+  o comentário no código e confirmei que `public/` é o certo.
+- **Clipe curto de aprovação** (`scripts/renderizar-clipe-curto.ts`):
+  render LOCAL (Chromium do ambiente + compositor nativo do Remotion,
+  sem CI) de intro + 3 cenas (grafico_precos_anos, ciclo_mercado_circular,
+  oferta_demanda_balanca), 26s, SEM áudio (Edge TTS precisa de rede
+  externa bloqueada na sandbox; o objetivo é aprovar a animação). O
+  render completo no CI adiciona a narração real do Antonio. Enviado a
+  Davi para aprovação visual antes do render completo.
