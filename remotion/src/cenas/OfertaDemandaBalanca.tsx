@@ -1,6 +1,6 @@
 import React from "react";
 import { interpolate, useCurrentFrame } from "remotion";
-import { FundoCena, Legenda, PalcoCentral, PropsCena } from "./_Base";
+import { FundoCena, Legenda, PalcoCentral, PropsCena, TermoChave } from "./_Base";
 import { EntradaSpring } from "../animacao/EntradaSpring";
 import { IconeCasa, IconePessoa } from "../icones/Icones";
 import { COR_DESTAQUE, COR_TEXTO } from "../cores";
@@ -27,6 +27,7 @@ export const OfertaDemandaBalanca: React.FC<PropsCena> = ({ texto }) => {
 
   return (
     <FundoCena>
+      <TermoChave texto="Oferta e Demanda" />
       <PalcoCentral>
         <div style={{ display: "flex", alignItems: "center", gap: 80 }}>
           {/* Oferta: poucas casas */}

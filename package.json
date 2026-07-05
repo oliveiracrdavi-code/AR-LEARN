@@ -21,6 +21,7 @@
   },
   "dependencies": {
     "@remotion/cli": "^4.0.484",
+    "@remotion/transitions": "4.0.484",
     "@supabase/supabase-js": "^2.110.0",
     "d3": "^7.9.0",
     "markmap-lib": "^0.18.12",

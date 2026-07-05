@@ -1,7 +1,21 @@
-import { AbsoluteFill, Audio, Sequence, staticFile, useVideoConfig } from "remotion";
+import React from "react";
+import { AbsoluteFill, Audio, Easing, Sequence, staticFile, useVideoConfig } from "remotion";
+import { TransitionSeries, linearTiming } from "@remotion/transitions";
 import { z } from "zod";
 import { COR_FUNDO, COR_DESTAQUE, VISUAL_TIPOS } from "./cores";
 import { CENAS_POR_TIPO, GenericoFallback, SkylineAbertura } from "./cenas";
+import { transicaoProfundidade } from "./animacao/transicaoProfundidade";
+
+// Duração de cada transição entre cenas: ~800ms (topo da faixa 400-800ms),
+// com easing suave — espalha o movimento da troca por mais frames, para a
+// transição não virar um pico (o teste reprova pico > 2x os vizinhos).
+export const TRANSICAO_FRAMES = 24;
+
+// Frames de narração de cada cena (arredondado por cena, para casar com o
+// cálculo de duração total da composição em Root.tsx).
+export function framesDeNarracao(cenas: { duracao_seg: number }[], fps: number): number[] {
+  return cenas.map((c) => Math.round(c.duracao_seg * fps));
+}
 
 // Paleta oficial re-exportada de ./cores (fonte de verdade única) para
 // não haver drift entre este componente, as primitivas e as cenas
@@ -107,8 +121,10 @@ function CenaView({ cena, duracaoFrames }: { cena: CenaVideo; duracaoFrames: num
 
 export function LearnVideo({ titulo, trilha, modulo, cenas, audioSrc }: LearnVideoProps) {
   const { fps } = useVideoConfig();
-  const frameInicioCenas = Math.round(DURACAO_INTRO_SEG * fps);
-  let frameAtual = frameInicioCenas;
+  const introFrames = Math.round(DURACAO_INTRO_SEG * fps);
+  const t = TRANSICAO_FRAMES;
+  const nCenas = cenas.length;
+  const framesCena = framesDeNarracao(cenas, fps);
 
   const audioResolvido = audioSrc
     ? audioSrc.startsWith("http://") || audioSrc.startsWith("https://")
@@ -116,31 +132,50 @@ export function LearnVideo({ titulo, trilha, modulo, cenas, audioSrc }: LearnVid
       : staticFile(audioSrc)
     : undefined;
 
+  // TransitionSeries com transições de profundidade em TODAS as trocas
+  // (nenhum corte seco). A sobreposição da transição (t frames) "come" o
+  // padding que adicionamos a cada cena, de modo que a cena i SEMPRE
+  // começa exatamente em introFrames + soma das narrações anteriores —
+  // ou seja, o áudio (que começa em introFrames) fica sincronizado sem
+  // drift acumulado. Prova: cena_i.start = (introFrames+t) +
+  // Σ_{j<i}(n_j+t) − (i+1)·t = introFrames + Σ_{j<i} n_j. O intro e todas
+  // as cenas menos a última levam +t de padding; a última não (não há
+  // transição depois dela), então o total bate com a duração da narração.
   return (
     <AbsoluteFill style={{ backgroundColor: COR_FUNDO }}>
       {audioResolvido ? (
         // A narração começa junto da primeira cena, não do card de
         // título (que não tem texto narrado) — sem isso, áudio e vídeo
-        // saem 5s fora de sincronia.
-        <Sequence from={frameInicioCenas}>
+        // saem fora de sincronia.
+        <Sequence from={introFrames}>
           <Audio src={audioResolvido} />
         </Sequence>
       ) : null}
 
-      <Sequence durationInFrames={Math.round(DURACAO_INTRO_SEG * fps)}>
-        <TituloCard titulo={titulo} trilha={trilha} modulo={modulo} />
-      </Sequence>
+      <TransitionSeries>
+        <TransitionSeries.Sequence durationInFrames={introFrames + t}>
+          <TituloCard titulo={titulo} trilha={trilha} modulo={modulo} />
+        </TransitionSeries.Sequence>
 
-      {cenas.map((cena, indice) => {
-        const duracaoFrames = Math.round(cena.duracao_seg * fps);
-        const from = frameAtual;
-        frameAtual += duracaoFrames;
-        return (
-          <Sequence key={indice} from={from} durationInFrames={duracaoFrames}>
-            <CenaView cena={cena} duracaoFrames={duracaoFrames} />
-          </Sequence>
-        );
-      })}
+        {cenas.map((cena, indice) => {
+          const ehUltima = indice === nCenas - 1;
+          const dur = framesCena[indice] + (ehUltima ? 0 : t);
+          return (
+            <React.Fragment key={indice}>
+              <TransitionSeries.Transition
+                timing={linearTiming({
+                  durationInFrames: t,
+                  easing: Easing.inOut(Easing.ease),
+                })}
+                presentation={transicaoProfundidade()}
+              />
+              <TransitionSeries.Sequence durationInFrames={dur}>
+                <CenaView cena={cena} duracaoFrames={dur} />
+              </TransitionSeries.Sequence>
+            </React.Fragment>
+          );
+        })}
+      </TransitionSeries>
     </AbsoluteFill>
   );
 }

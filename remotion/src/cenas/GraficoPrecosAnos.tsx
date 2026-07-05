@@ -2,6 +2,7 @@ import React from "react";
 import { FundoCena, Legenda, PalcoCentral, PropsCena } from "./_Base";
 import { GraficoBarras, ItemBarra } from "../animacao/GraficoBarras";
 import { EntradaSpring } from "../animacao/EntradaSpring";
+import { SeloFlutuante } from "../animacao/SeloFlutuante";
 import { COR_DESTAQUE } from "../cores";
 
 // visual_tipo grafico_precos_anos: barras de preço médio subindo ano a
@@ -38,6 +39,11 @@ export const GraficoPrecosAnos: React.FC<PropsCena> = ({ texto }) => {
           <GraficoBarras itens={ITENS} alturaMax={360} delayInicial={14} passo={16} />
         </div>
       </PalcoCentral>
+      {/* Selo de apoio: resume a valorização acumulada (elemento
+          secundário, menor e discreto — dá densidade sem competir). */}
+      <div style={{ position: "absolute", top: 150, right: 170 }}>
+        <SeloFlutuante rotulo="em 5 anos" valor="+81%" delay={70} />
+      </div>
       <Legenda texto={texto} />
     </FundoCena>
   );

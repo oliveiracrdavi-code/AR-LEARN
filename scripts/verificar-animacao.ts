@@ -24,7 +24,15 @@ import os from "node:os";
 // que o Remotion espera) — o binário `chrome` completo removeu o old
 // headless mode e não sobe. O headless_shell do Playwright serve.
 const CHROME = "/opt/pw-browsers/chromium_headless_shell-1194/chrome-linux/headless_shell";
-const SEGUNDOS_ENTRE_AMOSTRAS = 1;
+// Amostragem a cada 0,5s (critério das diretrizes de animação v2). Dois
+// pisos objetivos além do "diferença zero":
+//   - PISO_MOVIMENTO: nenhum trecho > 1s pode ficar abaixo desse % de
+//     pixels alterados (senão "parece parado" mesmo sem congelar).
+//   - RAZAO_PICO: nenhum pico pode ser > 2x a média dos vizinhos (isso
+//     seria corte seco; transição suave fica dentro de 2x).
+const SEGUNDOS_ENTRE_AMOSTRAS = 0.5;
+const PISO_MOVIMENTO_PCT = 1.0;
+const RAZAO_PICO = 2.0;
 
 // Props curtas de propósito, cobrindo vários visual_tipo diferentes —
 // testa o dispatcher inteiro (cada cena renderiza um componente
@@ -143,41 +151,97 @@ async function main() {
       caminhos.push({ frame, caminho });
     }
 
-    console.log("\n=== DIFERENÇA ENTRE AMOSTRAS CONSECUTIVAS ===");
+    console.log("\n=== DIFERENÇA ENTRE AMOSTRAS CONSECUTIVAS (a cada 0,5s) ===");
     const totalPixels = width * height;
-    let houveIntervaloParado = false;
-    const intervalosParados: string[] = [];
 
+    // Coleta % de cada intervalo.
+    type Amostra = { tA: string; tB: string; pct: number };
+    const amostras: Amostra[] = [];
     for (let i = 1; i < caminhos.length; i++) {
       const a = await carregarRGBA(caminhos[i - 1].caminho);
       const b = await carregarRGBA(caminhos[i].caminho);
       const diff = pixelmatch(a.data, b.data, undefined, width, height, { threshold: 0.1 });
-      const pct = ((diff / totalPixels) * 100).toFixed(3);
-      const tA = (caminhos[i - 1].frame / fps).toFixed(1);
-      const tB = (caminhos[i].frame / fps).toFixed(1);
-      const marca = diff === 0 ? "  <<< PARADO (diferença ZERO)" : "";
-      console.log(
-        `  ${tA}s -> ${tB}s : ${diff.toString().padStart(8)} px alterados (${pct}%)${marca}`
-      );
-      if (diff === 0) {
-        houveIntervaloParado = true;
-        intervalosParados.push(`${tA}s->${tB}s`);
-      }
+      const pct = (diff / totalPixels) * 100;
+      amostras.push({
+        tA: (caminhos[i - 1].frame / fps).toFixed(1),
+        tB: (caminhos[i].frame / fps).toFixed(1),
+        pct,
+      });
     }
 
-    console.log("");
-    if (houveIntervaloParado) {
-      console.error(
-        `FALHOU: ${intervalosParados.length} intervalo(s) com diferença ZERO (tela parada): ${intervalosParados.join(
-          ", "
-        )}. A animação NÃO passou no teste objetivo — corrigir antes de qualquer render.`
-      );
-      process.exit(1);
-    } else {
+    // Análise dos 3 critérios.
+    const paradosZero: string[] = [];
+    const abaixoPiso: number[] = []; // índices abaixo do piso de movimento
+    const picos: string[] = [];
+
+    amostras.forEach((am, i) => {
+      // vizinhos = até 2 antes e 2 depois, exceto o próprio
+      const viz: number[] = [];
+      for (let k = i - 2; k <= i + 2; k++) {
+        if (k !== i && k >= 0 && k < amostras.length) viz.push(amostras[k].pct);
+      }
+      const mediaViz = viz.reduce((s, v) => s + v, 0) / (viz.length || 1);
+      const ehPico = am.pct > RAZAO_PICO * mediaViz && mediaViz > 0.05;
+      const marcas =
+        (am.pct === 0 ? "  <<< PARADO (ZERO)" : "") +
+        (am.pct < PISO_MOVIMENTO_PCT ? "  < piso" : "") +
+        (ehPico ? `  <<< PICO (${(am.pct / mediaViz).toFixed(1)}x vizinhos)` : "");
       console.log(
-        "PASSOU: nenhum intervalo com diferença zero — a tela está em movimento contínuo em todas as amostras."
+        `  ${am.tA}s -> ${am.tB}s : ${am.pct.toFixed(3)}%${marcas}`
       );
+      if (am.pct === 0) paradosZero.push(`${am.tA}->${am.tB}`);
+      if (am.pct < PISO_MOVIMENTO_PCT) abaixoPiso.push(i);
+      if (ehPico) picos.push(`${am.tA}->${am.tB} (${(am.pct / mediaViz).toFixed(1)}x)`);
+    });
+
+    // Trechos contínuos > 1s abaixo do piso (3+ amostras de 0,5s = 1,5s).
+    const trechosLongos: string[] = [];
+    let run: number[] = [];
+    const fechaRun = () => {
+      if (run.length >= 3) {
+        trechosLongos.push(
+          `${amostras[run[0]].tA}s..${amostras[run[run.length - 1]].tB}s (${(
+            run.length * SEGUNDOS_ENTRE_AMOSTRAS
+          ).toFixed(1)}s)`
+        );
+      }
+      run = [];
+    };
+    for (let i = 0; i < amostras.length; i++) {
+      if (abaixoPiso.includes(i)) run.push(i);
+      else fechaRun();
     }
+    fechaRun();
+
+    console.log("\n=== RESULTADO ===");
+    const mediaGeral = amostras.reduce((s, a) => s + a.pct, 0) / amostras.length;
+    console.log(`Média de movimento: ${mediaGeral.toFixed(2)}% por 0,5s`);
+
+    let falhou = false;
+    if (paradosZero.length) {
+      console.error(`FALHOU (congelado): ${paradosZero.length} intervalo(s) com diferença ZERO.`);
+      falhou = true;
+    }
+    if (trechosLongos.length) {
+      console.error(
+        `FALHOU (movimento insuficiente): trecho(s) > 1s abaixo de ${PISO_MOVIMENTO_PCT}%: ${trechosLongos.join(
+          ", "
+        )}.`
+      );
+      falhou = true;
+    }
+    if (picos.length) {
+      console.error(
+        `FALHOU (corte seco): pico(s) > ${RAZAO_PICO}x os vizinhos: ${picos.join(", ")}.`
+      );
+      falhou = true;
+    }
+    if (falhou) {
+      process.exit(1);
+    }
+    console.log(
+      `PASSOU: sem congelamento, sem trecho > 1s abaixo de ${PISO_MOVIMENTO_PCT}%, e sem pico > ${RAZAO_PICO}x (transições suaves).`
+    );
   } finally {
     await browser.close({ silent: true });
     await rm(dir, { recursive: true, force: true });

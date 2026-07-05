@@ -985,3 +985,38 @@ esta tarefa e teste objetivo de frame-diff antes de qualquer render.
   externa bloqueada na sandbox; o objetivo é aprovar a animação). O
   render completo no CI adiciona a narração real do Antonio. Enviado a
   Davi para aprovação visual antes do render completo.
+
+## 2026-07-05 — Animação v2: transições 3D, movimento contínuo, densidade
+Davi reprovou o 1º clipe (progresso real, mas ainda abaixo do exigido) e
+mandou diretrizes v2 objetivas. Implementado e VALIDADO por frame-diff a
+cada 0,5s (mais rígido que os 2s da v1) antes de qualquer render caro:
+
+- **Transições (nada de corte seco)**: `@remotion/transitions`
+  (TransitionSeries) em TODAS as trocas, com presentation 3D própria
+  (`animacao/transicaoProfundidade.tsx`): a cena que sai recua no eixo Z
+  e a que entra avança do fundo (perspective + translateZ + escala +
+  opacidade parcial), ~800ms com easing suave. **Sincronia de áudio
+  preservada**: cada cena é "padada" por t frames que a sobreposição da
+  transição consome exatamente, então cena_i sempre começa em
+  introFrames + Σ narrações anteriores — zero drift acumulado (prova no
+  comentário do LearnVideo.tsx). Root.tsx soma frames por cena
+  arredondados para casar o total.
+- **Profundidade 3D real (não fade 2D)**: `_Base.tsx` FundoCena agora tem
+  câmera "viva" (rotação circular de poucos graus, velocidade constante)
+  e 3 camadas em Z: FAR (grade de pontos em parallax), MID (halo + linhas
+  de apoio deslizando + sparkles), NEAR (conteúdo). Still no meio de uma
+  transição confirma duas cenas em planos de profundidade diferentes.
+- **Movimento contínuo (piso)**: elemento principal com deriva CIRCULAR
+  (velocidade constante — seno sozinho estaciona nos picos e derruba o
+  movimento); sparkles orbitando; linhas de parallax em scroll contínuo.
+  Resultado: nenhum trecho > 1s abaixo de 1% de pixels/0,5s (média 2,2%).
+- **Densidade de composição (minimalista)**: cantos decorativos,
+  grade de pontos, sparkles e linhas em TODA cena (via FundoCena) +
+  por-cena: selo "+81% em 5 anos" no gráfico, termo-chave "Oferta e
+  Demanda", destaque suave (fade) nos setores do ciclo. Hierarquia
+  clara: principal grande/central, apoio menor/discreto, espaço para
+  respirar — sem poluir.
+- **Verificação objetiva** (`scripts/verificar-animacao.ts`, agora a cada
+  0,5s): 3 critérios — sem congelamento, sem trecho > 1s abaixo de 1%, e
+  sem pico > 2x os vizinhos (transição suave, não corte). PASSOU nos três.
+  Stills de 3 cenas + 1 transição auditados visualmente (densidade + 3D).
