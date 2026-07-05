@@ -905,3 +905,66 @@ saiu com 355s (5,9min), abaixo do piso de 420s (7min), mesmo com a
   lança um erro claro ("cortou a resposta por atingir o limite de
   max_tokens... JSON incompleto, não malformado") em vez de deixar
   virar um erro genérico de `JSON.parse` que esconde a causa real.
+
+## 2026-07-05 — Motion graphics reais no Remotion (2 renders estáticos reprovados)
+Davi reprovou (PARADA TOTAL) os dois primeiros renders completos: saíram
+como TEXTO ESTÁTICO sobre fundo colorido, sem animação e sem relação
+visual com a narração. Ele mediu quadro a quadro e provou intervalos de
+60s+ com diferença ZERO (tela congelada), contra a referência que nunca
+fica parada. Enviou o PDF "AR_LEARN_Diretrizes_Animacao_Restritas" com
+regras técnicas sem ambiguidade (interpolate/spring obrigatórios,
+line-art com stroke-dashoffset, gráficos com interpolate, tipografia
+cinética, corte de cena 4-8s, e correspondência conteúdo↔visual: cada
+cena ILUSTRA o que é narrado). Pediu modelo mais forte (Opus) só para
+esta tarefa e teste objetivo de frame-diff antes de qualquer render.
+
+- **Causa raiz**: `LearnVideo.tsx` tinha `TituloCard`/`CenaView` como
+  `<div>` estáticos (só cor de fundo + texto), sem nenhum
+  interpolate/spring/SVG — um comentário no próprio código admitia que
+  a animação tinha sido adiada "para o prompt de design separado" e
+  nunca foi retomada. Não era polimento faltando: era implementação
+  ausente.
+- **Implementado (via agente Opus, escopado só a esta tarefa)**:
+  - Campo `visual_tipo` (enum de 12 valores) por cena, em
+    `lib/openrouter/schema.ts` (obrigatório no cérebro),
+    `systemPrompt.ts` (documentado + guia de correspondência) e
+    `remotion/src/cores.ts` (`VISUAL_TIPOS`, fonte de verdade). O
+    cérebro passa a escolher, por cena, a animação temática que ilustra
+    o que é narrado (1ª cena sempre `skyline_abertura`).
+  - Primitivas de animação (`remotion/src/animacao/`): `EntradaSpring`,
+    `TextoCinetico` (tipografia cinética), `LineArtDraw`
+    (stroke-dashoffset pathLength→0), `BarraAnimada`/`GraficoBarras`
+    (interpolate de altura + rótulos em sequência). Nada aparece pronto
+    no frame 0; movimento contínuo (drift/pulso) garante que nenhum
+    intervalo de 2s fique idêntico.
+  - 11 componentes temáticos + fallback (`remotion/src/cenas/`), um por
+    `visual_tipo`, cada um ilustrando o conceito (balança de oferta x
+    demanda, casa valorizando, barras por ano, calculadora + custos,
+    mapa com raio, calendários de renda/short-stay, ciclo circular
+    girando, alerta com lista, checklist com checks desenhados).
+  - `LearnVideo.tsx` vira dispatcher por `visual_tipo`; preservados o
+    `audioSrc`/`staticFile` (sync de narração) e o timing por cena.
+- **Ícones em SVG próprio, não emoji (Regra de Ouro — evita "tofu" em
+  CI)**: os componentes usavam emoji (🏠🧑🛏️🚌🏪🏥🏫🌳📍), que dependem de
+  fonte de cor do SISTEMA. Local (Chromium do Playwright) renderiza,
+  mas o render OFICIAL roda no GitHub Actions com o chrome-headless-shell
+  do Remotion, onde a fonte de emoji pode não existir — viraria caixa
+  vazia. Trocados por `remotion/src/icones/Icones.tsx` (path desenhado,
+  cor da paleta): render determinístico em qualquer ambiente e mais
+  on-brand (line-art dourado combina com o resto; emoji multicolor
+  destoava).
+- **Verificação objetiva (feita por mim, antes de qualquer render caro)**:
+  - `scripts/verificar-animacao.ts`: renderiza quadros amostrados da
+    composição REAL (via dispatcher) a cada 1s (mais rígido que os 2s
+    do PDF) e compara pixel a pixel. Resultado: 35/35 intervalos com
+    movimento real (0,6% a 9,5% de pixels alterados por segundo),
+    NENHUM intervalo com diferença zero. Roda local com o Chromium do
+    ambiente + compositor nativo do Remotion (sem ffmpeg, sem CI).
+  - `scripts/inspecionar-cenas.ts`: renderiza 1 still de cada
+    `visual_tipo` para auditoria visual — confirmado que nenhum ícone
+    virou tofu e a qualidade de cada componente está boa.
+  - `npx tsc --noEmit` limpo em todo o projeto.
+- **Sequência acordada**: PR com o trabalho validado (typecheck +
+  frame-diff + auditoria de ícones) → Davi mergeia → só então renderizo
+  um clipe curto (2-3 cenas) para aprovação visual dele → só depois o
+  render completo. Nenhum render completo disparado sem aprovação.

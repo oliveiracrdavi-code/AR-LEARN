@@ -1,18 +1,23 @@
-import { AbsoluteFill, Audio, Img, Sequence, staticFile, useVideoConfig } from "remotion";
+import { AbsoluteFill, Audio, Sequence, staticFile, useVideoConfig } from "remotion";
 import { z } from "zod";
+import { COR_FUNDO, COR_DESTAQUE, VISUAL_TIPOS } from "./cores";
+import { CENAS_POR_TIPO, GenericoFallback, SkylineAbertura } from "./cenas";
 
-// Paleta oficial do projeto (decisão de Davi, 2026-07-05 — extraída por
-// análise de pixel real do PDF "Decola com a Carozzo", único elemento
-// herdado desse material): fundo quase-preto azulado + dourado/âmbar
-// de destaque. Substitui a paleta provisória "Ouro & Concreto"
-// (#0d0d0d/#D4AF37).
-const COR_FUNDO = "#000814";
-const COR_DESTAQUE = "#DFA02C";
+// Paleta oficial re-exportada de ./cores (fonte de verdade única) para
+// não haver drift entre este componente, as primitivas e as cenas
+// temáticas. Mantidas exportadas aqui por compatibilidade com quem já
+// importava daqui.
+export { COR_FUNDO, COR_DESTAQUE };
 
 const cenaVideoSchema = z.object({
   texto_narrado: z.string(),
   duracao_seg: z.number(),
+  // Dica humana livre (mantida): o cérebro descreve o visual em texto.
   visual: z.string(),
+  // Seletor de máquina: escolhe o componente temático animado. Opcional
+  // com default "generico_fallback" para fixtures antigas (sem o campo)
+  // ainda renderizarem — mas o cérebro deve sempre preencher.
+  visual_tipo: z.enum(VISUAL_TIPOS).optional().default("generico_fallback"),
 });
 
 // Schema explícito (em vez de só uma interface) pra a Composition do
@@ -44,14 +49,33 @@ export const learnVideoDefaultProps: LearnVideoProps = {
   trilha: "Trilha de exemplo",
   modulo: "Módulo de exemplo",
   cenas: [
-    { texto_narrado: "Texto de exemplo.", duracao_seg: 420, visual: "Tela de exemplo." },
+    {
+      texto_narrado:
+        "Olá, bem-vindos ao novo episódio, eu sou o Magnata Imobiliário e hoje iremos falar sobre valorização de imóveis.",
+      duracao_seg: 8,
+      visual: "Skyline de abertura com a logo.",
+      visual_tipo: "skyline_abertura",
+    },
+    {
+      texto_narrado:
+        "Quando a oferta é escassa e a demanda cresce, o preço sobe — é o mercado te mostrando onde está a oportunidade.",
+      duracao_seg: 8,
+      visual: "Balança entre oferta e demanda.",
+      visual_tipo: "oferta_demanda_balanca",
+    },
+    {
+      texto_narrado:
+        "Repare como o preço médio do metro quadrado sobe ano após ano: quem entra cedo constrói patrimônio.",
+      duracao_seg: 8,
+      visual: "Gráfico de barras por ano.",
+      visual_tipo: "grafico_precos_anos",
+    },
   ],
 };
 
-// Estilo provisório, só funcional — polimento de animação (line-art se
-// desenhando, gráficos de barra crescendo, tipografia cinética,
-// transições suaves) fica para o prompt de design separado. A paleta
-// (fundo/destaque) e a logo já são as oficiais.
+// Intro/título do vídeo: reaproveita a cena de abertura animada
+// (SkylineAbertura) — logo entrando com spring e skyline se desenhando.
+// Nunca mais um card estático. Mostra também trilha/módulo/título.
 function TituloCard({
   titulo,
   trilha,
@@ -61,45 +85,24 @@ function TituloCard({
   trilha: string;
   modulo: string;
 }) {
+  const { durationInFrames } = useVideoConfig();
   return (
-    <AbsoluteFill
-      style={{
-        backgroundColor: COR_FUNDO,
-        color: COR_DESTAQUE,
-        justifyContent: "center",
-        alignItems: "center",
-        flexDirection: "column",
-        fontFamily: "Arial, Helvetica, sans-serif",
-        textAlign: "center",
-        padding: "0 80px",
-      }}
-    >
-      <Img src={staticFile("logo-ar.jpg")} style={{ height: 100, marginBottom: 32 }} />
-      <div style={{ fontSize: 22, opacity: 0.8, marginBottom: 16 }}>
-        {trilha} / {modulo}
-      </div>
-      <div style={{ fontSize: 52, fontWeight: 700 }}>{titulo}</div>
+    <AbsoluteFill>
+      <SkylineAbertura
+        texto={`${trilha} / ${modulo} — ${titulo}`}
+        duracaoFrames={durationInFrames}
+      />
     </AbsoluteFill>
   );
 }
 
-function CenaView({ cena }: { cena: CenaVideo }) {
-  return (
-    <AbsoluteFill
-      style={{
-        backgroundColor: COR_FUNDO,
-        color: "#f5f5f5",
-        justifyContent: "flex-end",
-        padding: 60,
-        fontFamily: "Arial, Helvetica, sans-serif",
-      }}
-    >
-      <div style={{ fontSize: 20, opacity: 0.6, marginBottom: 16, color: COR_DESTAQUE }}>
-        {cena.visual}
-      </div>
-      <div style={{ fontSize: 34, lineHeight: 1.4 }}>{cena.texto_narrado}</div>
-    </AbsoluteFill>
-  );
+// Dispatcher: escolhe o componente temático animado pelo visual_tipo da
+// cena, caindo em GenericoFallback (também animado) se faltar/for
+// desconhecido. Cada cena recebe seu texto_narrado (vira legenda cinética)
+// e a duração em frames (para cronometrar as animações internas).
+function CenaView({ cena, duracaoFrames }: { cena: CenaVideo; duracaoFrames: number }) {
+  const Componente = CENAS_POR_TIPO[cena.visual_tipo] ?? GenericoFallback;
+  return <Componente texto={cena.texto_narrado} duracaoFrames={duracaoFrames} />;
 }
 
 export function LearnVideo({ titulo, trilha, modulo, cenas, audioSrc }: LearnVideoProps) {
@@ -114,7 +117,7 @@ export function LearnVideo({ titulo, trilha, modulo, cenas, audioSrc }: LearnVid
     : undefined;
 
   return (
-    <AbsoluteFill>
+    <AbsoluteFill style={{ backgroundColor: COR_FUNDO }}>
       {audioResolvido ? (
         // A narração começa junto da primeira cena, não do card de
         // título (que não tem texto narrado) — sem isso, áudio e vídeo
@@ -134,7 +137,7 @@ export function LearnVideo({ titulo, trilha, modulo, cenas, audioSrc }: LearnVid
         frameAtual += duracaoFrames;
         return (
           <Sequence key={indice} from={from} durationInFrames={duracaoFrames}>
-            <CenaView cena={cena} />
+            <CenaView cena={cena} duracaoFrames={duracaoFrames} />
           </Sequence>
         );
       })}
