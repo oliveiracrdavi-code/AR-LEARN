@@ -752,3 +752,44 @@ Não é carregado por padrão em cada sessão.
     React (`remotion/src/LearnVideo.tsx`), que roda de verdade no
     navegador do Remotion — contexto onde `staticFile()` funciona
     conforme documentado.
+
+## 2026-07-05 — Nova persona "Magnata Imobiliário" + identidade visual definitiva
+Decisão final de Davi, substitui integralmente a persona "Leandro
+Carozzo" (tom/voz do canal original) e a ideia intermediária de nome
+"Rico" — registrada conforme a Regra de Ouro.
+
+- **Persona**: "Magnata Imobiliário" — investidor, magnata, dominador
+  do mercado imobiliário, inteligente, promissor, postura de quem já
+  dominou o jogo. Tom: "vendedor calmo e didático, mas promissor" —
+  NÃO é o hype intenso/"gritado" de vendas.
+- **Abertura obrigatória de toda videoaula** (aplicada na 1ª cena do
+  `video_roteiro`): "Olá, bem-vindos ao novo episódio, eu sou o Magnata
+  Imobiliário e hoje iremos falar sobre [tema]." — só `[tema]` muda.
+- **Escopo do PDF "Decola com a Carozzo"**: SOMENTE a paleta de cores
+  foi herdada (extraída por análise de pixel real, não aproximação
+  visual) — tipografia, ícones, rodapé-ticker e tom de hype desse
+  material foram descartados.
+- **Identidade visual**: fundo `#000814` (quase preto azulado) e
+  destaque `#DFA02C` (dourado/âmbar), substituindo a paleta provisória
+  "Ouro & Concreto" (`#0d0d0d`/`#D4AF37`). Logo oficial "AR" (fundo
+  amarelo-dourado, letras pretas) salva em `public/logo-ar.jpg`,
+  substitui qualquer logo anterior.
+- **Implementado**:
+  - `lib/openrouter/systemPrompt.ts` reescrito com a nova persona, tom
+    e a regra de abertura obrigatória.
+  - `remotion/src/LearnVideo.tsx`: paleta recolorida (`COR_FUNDO`
+    `#000814`, `COR_DESTAQUE` `#DFA02C`), logo `public/logo-ar.jpg`
+    adicionada ao `TituloCard` via `<Img src={staticFile(...)}>`.
+    Mecânica de animação (Sequences, timing) mantida — só recoloriu.
+  - `docs/regras.md`: nova seção "Persona: Magnata Imobiliário" e
+    "Identidade visual (paleta e logo)"; menções a "Leandro Carozzo"
+    na seção de escolha de voz atualizadas para referenciar a nova
+    persona.
+  - `SETUP.md` e `app/(marketing)/page.tsx`: comentários/pendências
+    atualizados pra refletir a identidade visual definida (não mais
+    "ainda por confirmar").
+- **Pendente (bloqueado até aprovação)**: Davi pediu uma prévia de
+  texto (2-3 frases de exemplo do Magnata Imobiliário abrindo um Learn
+  sobre "como funciona o mercado imobiliário") antes de autorizar
+  qualquer novo render de vídeo — nenhum render foi disparado com a
+  persona/paleta nova ainda.

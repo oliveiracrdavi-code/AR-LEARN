@@ -1,5 +1,13 @@
-import { AbsoluteFill, Audio, Sequence, staticFile, useVideoConfig } from "remotion";
+import { AbsoluteFill, Audio, Img, Sequence, staticFile, useVideoConfig } from "remotion";
 import { z } from "zod";
+
+// Paleta oficial do projeto (decisão de Davi, 2026-07-05 — extraída por
+// análise de pixel real do PDF "Decola com a Carozzo", único elemento
+// herdado desse material): fundo quase-preto azulado + dourado/âmbar
+// de destaque. Substitui a paleta provisória "Ouro & Concreto"
+// (#0d0d0d/#D4AF37).
+const COR_FUNDO = "#000814";
+const COR_DESTAQUE = "#DFA02C";
 
 const cenaVideoSchema = z.object({
   texto_narrado: z.string(),
@@ -40,8 +48,10 @@ export const learnVideoDefaultProps: LearnVideoProps = {
   ],
 };
 
-// Estilo provisório, só funcional — paleta final (Ouro & Concreto) e
-// polimento de animação ficam para o prompt de design separado.
+// Estilo provisório, só funcional — polimento de animação (line-art se
+// desenhando, gráficos de barra crescendo, tipografia cinética,
+// transições suaves) fica para o prompt de design separado. A paleta
+// (fundo/destaque) e a logo já são as oficiais.
 function TituloCard({
   titulo,
   trilha,
@@ -54,8 +64,8 @@ function TituloCard({
   return (
     <AbsoluteFill
       style={{
-        backgroundColor: "#0d0d0d",
-        color: "#D4AF37",
+        backgroundColor: COR_FUNDO,
+        color: COR_DESTAQUE,
         justifyContent: "center",
         alignItems: "center",
         flexDirection: "column",
@@ -64,6 +74,7 @@ function TituloCard({
         padding: "0 80px",
       }}
     >
+      <Img src={staticFile("logo-ar.jpg")} style={{ height: 100, marginBottom: 32 }} />
       <div style={{ fontSize: 22, opacity: 0.8, marginBottom: 16 }}>
         {trilha} / {modulo}
       </div>
@@ -76,14 +87,16 @@ function CenaView({ cena }: { cena: CenaVideo }) {
   return (
     <AbsoluteFill
       style={{
-        backgroundColor: "#111111",
+        backgroundColor: COR_FUNDO,
         color: "#f5f5f5",
         justifyContent: "flex-end",
         padding: 60,
         fontFamily: "Arial, Helvetica, sans-serif",
       }}
     >
-      <div style={{ fontSize: 20, opacity: 0.6, marginBottom: 16 }}>{cena.visual}</div>
+      <div style={{ fontSize: 20, opacity: 0.6, marginBottom: 16, color: COR_DESTAQUE }}>
+        {cena.visual}
+      </div>
       <div style={{ fontSize: 34, lineHeight: 1.4 }}>{cena.texto_narrado}</div>
     </AbsoluteFill>
   );

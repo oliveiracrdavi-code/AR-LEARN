@@ -52,6 +52,50 @@ código — schema da Fase 0 não muda):
 - Polimento visual (animações, render 3D) é prompt separado, enviado
   depois que a vitrine básica funcionar — não adiantar.
 
+## Persona: Magnata Imobiliário (identidade de conteúdo)
+Decisão final de Davi (2026-07-05) — substitui integralmente a persona
+anterior "Leandro Carozzo" (voz/tom do canal original) e a ideia
+intermediária de nome "Rico". **"Magnata Imobiliário" é o nome
+definitivo e único da persona de narração/conteúdo do AR LEARN.**
+
+**Personagem**: investidor, magnata, dominador do mercado imobiliário
+— inteligente, promissor, com a postura de quem já dominou o jogo
+("conhecimento é poder").
+
+**Tom de fala**: vendedor calmo e didático, mas promissor. Fala para
+quem está buscando aprender a investir e quer um guia real pra
+enriquecer através do mercado imobiliário. Combina calma didática com
+autoridade confiante — NÃO é o hype intenso/"gritado" de vendas (ver
+abaixo, "Escopo do PDF Decola com a Carozzo").
+
+**Abertura obrigatória de toda videoaula** (regra inviolável, aplicada
+pelo cérebro/OpenRouter na primeira cena do `video_roteiro`):
+"Olá, bem-vindos ao novo episódio, eu sou o Magnata Imobiliário e hoje
+iremos falar sobre [tema]." — só o `[tema]` muda por Learn; o resto da
+frase é fixo.
+
+**Escopo do PDF "Decola com a Carozzo"**: SOMENTE a paleta de cores foi
+herdada desse material (ver "Identidade visual" abaixo). Não usar
+tipografia bold/caixa alta, ícones circulares numerados, rodapé-ticker,
+nem o tom de hype de vendas ("R$6 MILHÕES EM JOGO" etc.) — isso foi
+descartado.
+
+## Identidade visual (paleta e logo)
+Decisão final de Davi (2026-07-05), extraída por análise de pixel real
+do PDF "Decola com a Carozzo" (única coisa herdada dele) — substitui a
+paleta provisória "Ouro & Concreto" (#0d0d0d / #D4AF37):
+- **Fundo dominante**: `#000814` (quase preto, levemente azulado) —
+  fundo principal das videoaulas e de toda a identidade do projeto.
+- **Dourado/âmbar de destaque**: `#DFA02C` — cor de destaque oficial
+  (site, vídeo, PDFs futuros), substitui o `#D4AF37` anterior.
+- **Logo oficial**: "AR" (fundo amarelo-dourado vibrante, letras em
+  preto sólido) — arquivo em `public/logo-ar.jpg`. Substitui qualquer
+  logo anterior, incluindo "Decola com a Carozzo".
+- Mecânica de animação (line-art se desenhando, gráficos de barra
+  crescendo, tipografia cinética, transições suaves) mantida — só
+  recolore fundo (claro → `#000814`) e destaque (`#D4AF37`/azul →
+  `#DFA02C`).
+
 ## Troca de ferramenta de voz (decisão explícita, não desvio silencioso)
 Histórico de tentativas (nessa ordem, todas registradas em
 `docs/historico.md`):
@@ -68,14 +112,15 @@ Histórico de tentativas (nessa ordem, todas registradas em
 ### Decisão final (2026-07-04): voz oficial do projeto
 **Voz oficial do projeto: `pt-BR-AntonioNeural` (Edge TTS). Fixa em
 todo o pipeline — nunca trocar sem aprovação explícita de Davi.**
-Aprovada por ouvido, comparando com referência real do Leandro
-Carozzo, entre 3 candidatas masculinas testadas
-(`pt-BR-AntonioNeural`, `pt-BR-HumbertoNeural`, `pt-BR-DonatoNeural`).
-Só a primeira existe de fato no catálogo do Edge TTS (confirmado via
-`tts.getVoices()`, não por documentação) — as outras duas falharam com
-"No audio data received". A voz feminina `pt-BR-FranciscaNeural`
-também tinha sido testada e aprovada antes, mas foi substituída pela
-decisão de usar voz masculina alinhada ao perfil do Leandro Carozzo.
+Aprovada por ouvido, comparando com referência real de voz, entre 3
+candidatas masculinas testadas (`pt-BR-AntonioNeural`,
+`pt-BR-HumbertoNeural`, `pt-BR-DonatoNeural`). Só a primeira existe de
+fato no catálogo do Edge TTS (confirmado via `tts.getVoices()`, não por
+documentação) — as outras duas falharam com "No audio data received".
+A voz feminina `pt-BR-FranciscaNeural` também tinha sido testada e
+aprovada antes, mas foi substituída pela decisão de usar voz masculina
+alinhada ao perfil do **Magnata Imobiliário** (persona de narração —
+ver seção "Persona: Magnata Imobiliário" abaixo).
 
 **Ressalva importante — Edge TTS não é uma API oficial/comercial da
 Microsoft.** É o mesmo endpoint não documentado

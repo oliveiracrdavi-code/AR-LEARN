@@ -108,8 +108,9 @@ o resto.
 - Trazer as credenciais do Cloudflare Workers AI e confirmar suporte a
   pt-BR (ou trocar de novo, se não suportar) pra concluir a videoaula
 - Auth (sessão de usuário nas rotas de `app/(members)`)
-- Landing dobra-a-dobra e identidade visual "Ouro & Concreto" (cores e
-  componentes exatos ainda por confirmar com o usuário)
+- Landing dobra-a-dobra — identidade visual definida (fundo `#000814`,
+  destaque `#DFA02C`, logo `public/logo-ar.jpg`, persona "Magnata
+  Imobiliário" — ver `docs/regras.md`), componentes ainda por construir
 - Design system em `components/ui/`
 - Publicação no Supabase (Fase 3)
 - Integração de pagamento (Mercado Pago) — só na Fase 4
