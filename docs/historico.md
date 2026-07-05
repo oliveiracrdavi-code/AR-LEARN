@@ -882,3 +882,26 @@ saiu com 355s (5,9min), abaixo do piso de 420s (7min), mesmo com a
   ao modelo (o `duracao_seg` que ele escrever é ignorado); em vez
   disso, instrui a escrever pelo menos ~8.200 caracteres somados de
   `texto_narrado` (o equivalente a ~460s na taxa real do Antonio).
+- **Confirmação parcial + novo bug exposto**: o teste barato confirmou
+  que o recálculo determinístico funciona (log real: "duração do
+  roteiro (recalculada por caracteres): 221,63s (piso: 420s)" — número
+  batendo com os caracteres de verdade, não mais o chute do LLM — e
+  corretamente disparou a retentativa de expansão). Mas o teste falhou
+  mesmo assim: na retentativa de expansão (roteiro mais longo pra
+  bater o novo alvo maior de caracteres), o OpenRouter devolveu JSON
+  cortado no meio ("Expected ',' or '}' after property value... position
+  16615"), esgotando as 3 tentativas.
+- **Causa raiz**: `chamarOpenRouter()` não definia `max_tokens`
+  nenhum — a resposta mais longa (necessária pro roteiro expandido)
+  provavelmente bateu num teto padrão da API e foi cortada no meio do
+  JSON. Confirmado via busca que `google/gemini-2.5-flash` suporta até
+  65.535 tokens de saída no catálogo do OpenRouter — não é o modelo
+  que limitava, era a ausência de `max_tokens` explícito.
+- **Correção**: `max_tokens: 12_000` adicionado à chamada (folga
+  generosa sobre a estimativa de ~6-7 mil tokens do JSON completo —
+  roteiro ~8.200 caracteres + seções do PDF + mapa mental + estrutura
+  —, ainda bem abaixo do teto real do modelo). Também adicionada
+  checagem explícita de `finish_reason === "length"` na resposta, que
+  lança um erro claro ("cortou a resposta por atingir o limite de
+  max_tokens... JSON incompleto, não malformado") em vez de deixar
+  virar um erro genérico de `JSON.parse` que esconde a causa real.

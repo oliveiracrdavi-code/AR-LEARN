@@ -14,6 +14,17 @@ import { DURACAO_MINIMA_VIDEO_SEG, TAXA_CARACTERES_POR_SEGUNDO_ANTONIO } from ".
 const MODELO_BARATO = process.env.OPENROUTER_MODEL || "google/gemini-2.5-flash";
 const MAX_TENTATIVAS = 3;
 
+// Sem max_tokens explícito, a resposta pode ser truncada a meio do
+// JSON quando o roteiro expandido (retentativa de duração) fica mais
+// longo — foi exatamente o que aconteceu de verdade (JSON malformado
+// no meio de uma retentativa de expansão). ~19.500 caracteres de JSON
+// completo (roteiro ~8.200 + seções do PDF + mapa mental + estrutura)
+// dá uns 6-7 mil tokens; 12.000 dá folga generosa e ainda fica bem
+// abaixo do teto real do modelo (google/gemini-2.5-flash suporta até
+// 65.535 tokens de saída no catálogo do OpenRouter — confirmado, não
+// é o gargalo).
+const MAX_TOKENS_RESPOSTA = 12_000;
+
 // Timeout curto e explícito por chamada — sem isso, uma instabilidade
 // pontual do OpenRouter (fetch nunca resolve) trava o step inteiro por
 // tempo indefinido em vez de falhar rápido e de forma identificável.
@@ -47,6 +58,7 @@ async function chamarOpenRouter(mensagens: Mensagem[]): Promise<string> {
         messages: mensagens,
         response_format: { type: "json_object" },
         temperature: 0.4,
+        max_tokens: MAX_TOKENS_RESPOSTA,
       }),
       signal: controller.signal,
     });
@@ -69,8 +81,19 @@ async function chamarOpenRouter(mensagens: Mensagem[]): Promise<string> {
 
   logComTimestamp("Resposta do OpenRouter recebida.");
   const json = (await res.json()) as {
-    choices: { message: { content: string } }[];
+    choices: { message: { content: string }; finish_reason?: string }[];
   };
+
+  // finish_reason "length" = a resposta foi CORTADA por bater o teto
+  // de max_tokens, não um JSON malformado "normal" — sem essa checagem
+  // explícita, isso vira um erro genérico de JSON.parse (posição X),
+  // escondendo a causa real (resposta truncada) atrás de um sintoma.
+  if (json.choices[0].finish_reason === "length") {
+    throw new Error(
+      `OpenRouter cortou a resposta por atingir o limite de max_tokens (${MAX_TOKENS_RESPOSTA}) — JSON incompleto, não malformado. Aumente MAX_TOKENS_RESPOSTA.`
+    );
+  }
+
   return json.choices[0].message.content;
 }
 
