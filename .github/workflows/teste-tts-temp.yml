@@ -77,3 +77,22 @@ jobs:
         with:
           name: teste-tts-edge-pt-BR-DonatoNeural
           path: scripts/output/teste-tts-edge-pt-BR-DonatoNeural.mp3
+
+  testar-validacao-duracao:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (branch de trabalho, com o projeto completo)
+        uses: actions/checkout@v4
+        with:
+          ref: claude/ar-learn-platform-setup-63c3tl
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Testar validação de piso de duração (roteiro deliberadamente curto)
+        run: npx tsx scripts/testar-validacao-duracao.ts

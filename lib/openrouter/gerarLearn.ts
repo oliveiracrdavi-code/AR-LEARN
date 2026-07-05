@@ -1,6 +1,7 @@
 import { learnContratoSchema, type LearnContrato } from "./schema";
 import { SYSTEM_PROMPT_CEREBRO } from "./systemPrompt";
 import { logComTimestamp } from "../util/log";
+import { DURACAO_MINIMA_VIDEO_SEG } from "../constantes";
 
 // Modelo barato via OpenRouter (Manual das Ferramentas, seção 5).
 // Configurável por env var pra trocar sem tocar em código.
@@ -19,10 +20,6 @@ const MAX_TENTATIVAS = 3;
 // Vira ErroTransiente, então é retentado pelo loop de MAX_TENTATIVAS
 // como qualquer outro 429/5xx.
 const TIMEOUT_MS = 30_000;
-
-// Duração mínima do vídeo (Regra de Ouro do projeto — CLAUDE.md /
-// docs/stack.md). Atualizado de 300s (5 min) para 420s (7 min).
-const DURACAO_MINIMA_SEG = 420;
 
 type Mensagem = { role: "system" | "user" | "assistant"; content: string };
 
@@ -106,17 +103,17 @@ export async function gerarLearnDoEpisodio(
           0
         );
 
-        console.log(`  [tentativa ${tentativa}] duração do roteiro: ${duracaoTotal}s (piso: ${DURACAO_MINIMA_SEG}s)`);
+        console.log(`  [tentativa ${tentativa}] duração do roteiro: ${duracaoTotal}s (piso: ${DURACAO_MINIMA_VIDEO_SEG}s)`);
 
-        if (duracaoTotal >= DURACAO_MINIMA_SEG) {
+        if (duracaoTotal >= DURACAO_MINIMA_VIDEO_SEG) {
           return validado.data;
         }
 
-        ultimoErro = `duração total do roteiro (${duracaoTotal}s) abaixo do piso de ${DURACAO_MINIMA_SEG}s`;
+        ultimoErro = `duração total do roteiro (${duracaoTotal}s) abaixo do piso de ${DURACAO_MINIMA_VIDEO_SEG}s`;
         mensagens.push({ role: "assistant", content: resposta });
         mensagens.push({
           role: "user",
-          content: `A soma de duracao_seg das cenas ficou em ${duracaoTotal}s, abaixo do mínimo de ${DURACAO_MINIMA_SEG}s (7 minutos). Devolva o JSON de novo, expandindo o video_roteiro com mais cenas/detalhe do que já está na transcrição — sem inventar fatos que não estão nela — até atingir o piso. Sem cercas de markdown.`,
+          content: `A soma de duracao_seg das cenas ficou em ${duracaoTotal}s, abaixo do mínimo de ${DURACAO_MINIMA_VIDEO_SEG}s (7 minutos). Devolva o JSON de novo, expandindo o video_roteiro com mais cenas/detalhe do que já está na transcrição — sem inventar fatos que não estão nela — até atingir o piso. Sem cercas de markdown.`,
         });
         continue;
       }

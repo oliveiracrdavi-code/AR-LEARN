@@ -15,6 +15,7 @@
     "tts-edge:teste": "tsx scripts/testar-tts-edge-isolado.ts",
     "tts-edge-masculinas:teste": "tsx scripts/testar-tts-edge-vozes-masculinas.ts",
     "narracao:sintetizar": "tsx scripts/sintetizar-narracao-fixture.ts",
+    "validacao-duracao:teste": "tsx scripts/testar-validacao-duracao.ts",
     "remotion:props": "tsx scripts/preparar-props-remotion.ts",
     "remotion:render": "remotion render remotion/src/index.ts LearnVideo scripts/output/video.mp4 --props=scripts/output/remotion-props.json"
   },

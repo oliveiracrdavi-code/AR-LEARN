@@ -25,6 +25,9 @@ jobs:
       - name: Instalar dependências
         run: npm ci
 
+      - name: Validar piso de duração (teste rápido/barato, sem cérebro nem render)
+        run: npx tsx scripts/testar-validacao-duracao.ts
+
       - name: Instalar Chromium do Playwright (necessário pro PDF)
         run: npx playwright install --with-deps chromium
 

@@ -793,3 +793,37 @@ Carozzo" (tom/voz do canal original) e a ideia intermediária de nome
   sobre "como funciona o mercado imobiliário") antes de autorizar
   qualquer novo render de vídeo — nenhum render foi disparado com a
   persona/paleta nova ainda.
+
+## 2026-07-05 — Bug de duração real abaixo do piso (355s) + correção
+Davi reportou que o vídeo renderizado do fixture "mercado imobiliário"
+saiu com 355s (5,9min), abaixo do piso de 420s (7min), mesmo com a
+"validação de duração" supostamente implementada.
+
+- **Diagnóstico**: existiam DUAS camadas de validação de duração, e só
+  uma estava conectada de fato:
+  1. `gerarLearnDoEpisodio` (cérebro/OpenRouter) valida a soma das
+     ESTIMATIVAS `duracao_seg` que o próprio LLM "chuta" no roteiro, com
+     retentativas (`MAX_TENTATIVAS = 3`) — essa parte sempre funcionou
+     corretamente (rejeita/retenta se a estimativa não bate o piso).
+  2. A duração REAL da narração (medida depois, via Edge TTS) NUNCA era
+     validada — e o Edge TTS fala mais rápido do que a estimativa do
+     LLM assume. Um roteiro que passava na validação de estimativa podia
+     gerar áudio real abaixo do piso, e o vídeo era renderizado assim
+     mesmo, silenciosamente. Essa é a causa raiz real do vídeo de 355s.
+- **Correção**: `sintetizarRoteiro()` (`lib/tts/sintetizar.ts`) agora
+  mede a duração real total (soma das durações medidas por bitrate
+  constante) e lança erro explícito ("Narração real ficou em Xs, abaixo
+  do piso de 420s...") se ficar abaixo do piso — IMPEDE o vídeo de ser
+  gerado, em vez de aceitar silenciosamente. Piso compartilhado extraído
+  para `lib/constantes.ts` (`DURACAO_MINIMA_VIDEO_SEG = 420`), importado
+  tanto por `gerarLearn.ts` quanto por `sintetizar.ts`, evitando duas
+  fontes de verdade divergentes para o mesmo número.
+- **Teste rápido/barato** (`scripts/testar-validacao-duracao.ts`, script
+  `npm run validacao-duracao:teste`): roteiro deliberadamente curto (3
+  frases), sem chamar o cérebro/OpenRouter, confirma que
+  `sintetizarRoteiro()` REJEITA corretamente com a mensagem de erro
+  esperada — evita gastar um render completo só para testar a validação.
+  Também registrado como job isolado (`testar-validacao-duracao`) no
+  workflow `teste-tts-temp.yml`, e como guarda permanente (roda antes do
+  Playwright/render) no início do `render-video-temp.yml`, protegendo
+  todo render futuro contra a mesma regressão.

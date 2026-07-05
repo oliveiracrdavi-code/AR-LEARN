@@ -18,6 +18,7 @@
 // no render Remotion via GitHub Actions, fora da árvore do Next.js
 // (mesmo motivo registrado pros outros módulos de pipeline na Fase 1).
 import { MsEdgeTTS, OUTPUT_FORMAT } from "msedge-tts";
+import { DURACAO_MINIMA_VIDEO_SEG } from "../constantes";
 
 export const VOZ_OFICIAL = "pt-BR-AntonioNeural";
 
@@ -109,13 +110,33 @@ export interface RoteiroNarrado {
 // re-encode — mesmo risco já registrado antes: revisitar com ffmpeg se
 // algum player tiver problema de clique entre blocos) e retornando
 // também a duração real medida de cada cena.
+//
+// VALIDAÇÃO REAL DO PISO DE DURAÇÃO (não é a mesma coisa que a
+// validação do cérebro): o cérebro (gerarLearn.ts) só valida a
+// ESTIMATIVA de duracao_seg que o LLM "chuta" no roteiro. O Edge TTS
+// fala mais rápido do que essa estimativa assume, então um roteiro que
+// passou na validação do cérebro pode gerar uma narração REAL abaixo
+// do piso de 7 min (aconteceu de verdade: estimativa passou, narração
+// real saiu em 355s). Por isso essa função barra aqui, na duração
+// medida de verdade — é a última linha de defesa antes do render.
 export async function sintetizarRoteiro(textosCenas: string[]): Promise<RoteiroNarrado> {
   const cenas: CenaNarrada[] = [];
   for (const texto of textosCenas) {
     cenas.push(await sintetizarCena(texto));
   }
+  const duracoesPorCena = cenas.map((c) => c.duracaoSegundos);
+  const duracaoTotal = duracoesPorCena.reduce((soma, d) => soma + d, 0);
+
+  if (duracaoTotal < DURACAO_MINIMA_VIDEO_SEG) {
+    throw new Error(
+      `Narração real ficou em ${duracaoTotal.toFixed(2)}s, abaixo do piso de ${DURACAO_MINIMA_VIDEO_SEG}s (7 min). ` +
+        `O roteiro passou na validação de ESTIMATIVA do cérebro, mas a fala real do Edge TTS é mais rápida que a ` +
+        `estimativa — vídeo NÃO gerado. Expanda o roteiro (mais cenas/detalhe real da transcrição) e tente de novo.`
+    );
+  }
+
   return {
     audioCompleto: Buffer.concat(cenas.map((c) => c.buffer)),
-    duracoesPorCena: cenas.map((c) => c.duracaoSegundos),
+    duracoesPorCena,
   };
 }
