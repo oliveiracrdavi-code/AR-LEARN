@@ -96,3 +96,24 @@ jobs:
 
       - name: Testar validação de piso de duração (roteiro deliberadamente curto)
         run: npx tsx scripts/testar-validacao-duracao.ts
+
+  testar-formula-duracao-cerebro:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (branch de trabalho, com o projeto completo)
+        uses: actions/checkout@v4
+        with:
+          ref: claude/ar-learn-platform-setup-63c3tl
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Gerar fixture real (só cérebro OpenRouter + estimativa de duração, sem TTS nem render)
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        run: npx tsx scripts/gerar-fixture-real.ts

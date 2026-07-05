@@ -827,3 +827,35 @@ saiu com 355s (5,9min), abaixo do piso de 420s (7min), mesmo com a
   workflow `teste-tts-temp.yml`, e como guarda permanente (roda antes do
   Playwright/render) no início do `render-video-temp.yml`, protegendo
   todo render futuro contra a mesma regressão.
+- **Confirmação em produção**: o teste rápido/barato passou (rejeitou
+  corretamente um roteiro curto de teste). Em seguida, o render
+  completo real (fixture "mercado imobiliário", já com a persona
+  Magnata Imobiliário) foi disparado — a correção funcionou exatamente
+  como esperado: a narração real saiu em **373,54s**, abaixo do piso, e
+  foi **REJEITADA antes do render de vídeo** (nenhum minuto de Remotion
+  desperdiçado), com a mensagem de erro clara esperada.
+- **Causa raiz do desalinhamento estimativa x real (recalibração)**:
+  comparando com o fixture anterior salvo localmente
+  (`scripts/output/fixture-mercado-imobiliario.json`): o cérebro havia
+  estimado 530s de soma de `duracao_seg`, mas a narração real saiu em
+  355s — ou seja, o cérebro assume uma cadência de fala de ~11,9
+  caracteres/segundo (~123 palavras/min), bem mais lenta que a
+  velocidade REAL medida da voz `pt-BR-AntonioNeural` (Edge TTS), que é
+  de ~17,8 caracteres/segundo (~183 palavras/min). O `systemPrompt.ts`
+  não dava nenhuma fórmula concreta ao LLM — ele só "chutava" a duração
+  de cada cena livremente, o que explica por que a validação de
+  ESTIMATIVA (que sempre funcionou) não impedia esse desalinhamento.
+- **Correção da fórmula**: `lib/openrouter/systemPrompt.ts` agora
+  instrui o cérebro a calcular `duracao_seg` de cada cena por
+  `caracteres ÷ 17,8` (a taxa real medida do Antonio), em vez de
+  estimar livremente, e a mirar numa soma de pelo menos 460s (folga de
+  ~40s acima do piso real de 420s, para absorver variância residual
+  entre a fórmula e a fala real). O piso rígido de 420s em
+  `lib/constantes.ts`/`sintetizarRoteiro()` continua sendo a última
+  linha de defesa, inalterado.
+- **Sequência acordada com Davi antes do próximo render completo**: só
+  o teste barato (geração de roteiro + validação de duração estimada,
+  sem renderizar vídeo) deve rodar para confirmar que a nova fórmula
+  acerta o alvo — nenhum novo render completo deve ser disparado sem
+  autorização explícita dele, mesmo com a causa e a correção já
+  diagnosticadas e aprovadas.

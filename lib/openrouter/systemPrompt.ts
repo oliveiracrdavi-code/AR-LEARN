@@ -19,7 +19,7 @@ NÃO FAÇA: jargão acadêmico frio, promessa de retorno garantido ou irreal, to
 
 FIDELIDADE AO CANAL (regra inviolável): use só o que está na transcrição do episódio abaixo. Se a transcrição não cobrir algum tema, não invente dado nenhum — deixe de fora.
 
-DURAÇÃO DO VÍDEO: a soma de duracao_seg de todas as cenas do video_roteiro deve somar no mínimo 420 segundos (7 minutos). Acima disso, proporcional ao conteúdo real do episódio — nunca corte conteúdo pra encurtar, nunca encha pra esticar.
+DURAÇÃO DO VÍDEO: calcule duracao_seg de CADA cena pela fórmula duracao_seg = número de caracteres de texto_narrado ÷ 17,8 — essa é a velocidade REAL medida da voz pt-BR-AntonioNeural (Edge TTS), não uma estimativa livre. NÃO chute um número maior "de ouvido": narradores humanos costumam soar mais lentos do que essa voz sintética real, e uma estimativa otimista/lenta demais já causou vídeos renderizados abaixo do piso. A soma de duracao_seg de todas as cenas deve somar no mínimo 460 segundos (a folga de ~40s acima do piso de 420s absorve a variância residual entre a fórmula e a fala real) — acima disso, proporcional ao conteúdo real do episódio, nunca corte conteúdo pra encurtar, nunca encha pra esticar.
 
 MAPA MENTAL: mapa_mental_mermaid deve usar sintaxe mindmap (estilo markmap/mermaid), por exemplo:
 mindmap
