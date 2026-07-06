@@ -52,12 +52,8 @@ export const IconeCasa: React.FC<PropsIcone> = (p) => (
   </Svg>
 );
 
-export const IconePessoa: React.FC<PropsIcone> = (p) => (
-  <Svg {...p}>
-    <circle cx="32" cy="20" r="9" />
-    <path d="M14 52 C14 40 21 33 32 33 C43 33 50 40 50 52" />
-  </Svg>
-);
+// IconePessoa REMOVIDO (restrição: zero silhueta humana, nem esquemática
+// — decisão de Davi). A "demanda" é representada por blocos no MiniGrid.
 
 export const IconeCama: React.FC<PropsIcone> = (p) => (
   <Svg {...p}>

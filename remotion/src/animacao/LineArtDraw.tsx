@@ -27,6 +27,7 @@ export const LineArtDraw: React.FC<{
   delay?: number; // frames antes de começar a desenhar
   duracao?: number; // frames para completar o traço
   escalonar?: boolean; // se true, cada path começa após o anterior
+  passoEscalonar?: number; // frames de defasagem entre partes (2.1: 5-8)
   style?: React.CSSProperties;
   children?: React.ReactNode; // conteúdo SVG extra (círculos, etc.)
 }> = ({
@@ -40,12 +41,14 @@ export const LineArtDraw: React.FC<{
   delay = 0,
   duracao = 45,
   escalonar = true,
+  passoEscalonar,
   style,
   children,
 }) => {
   const frame = useCurrentFrame();
   const lista: PathSpec[] =
     typeof paths === "string" ? [{ d: paths }] : paths;
+  const passo = passoEscalonar ?? duracao;
 
   return (
     <svg
@@ -56,7 +59,7 @@ export const LineArtDraw: React.FC<{
     >
       {lista.map((p, i) => {
         const comp = Math.max(1, p.comprimento ?? comprimentoPadrao); // guarda NaN/0
-        const inicio = delay + (escalonar ? i * duracao : 0);
+        const inicio = delay + (escalonar ? i * passo : 0);
         const offset = interpolate(
           frame,
           [inicio, inicio + duracao],

@@ -2,23 +2,20 @@ import React from "react";
 import { interpolate, useCurrentFrame } from "remotion";
 import { COR_TEXTO } from "../cores";
 
-// Tipografia cinética: recebe uma string e a entrega palavra a palavra
-// (ou letra a letra), cada unidade entrando com opacidade + deslocamento
-// vertical escalonado. Nunca mostra a frase inteira no frame 0 — cada
-// unidade só "chega" após seu delay próprio. Depois de montar, um leve
-// respiro contínuo (drift senoidal) evita que o bloco fique 100% parado
-// (teste objetivo do cliente amostra a cada 2s e reprova qualquer janela
-// pixel-idêntica).
-
+// Tipografia cinética (Seção 2.3): texto entra palavra a palavra (ou
+// letra a letra), cada unidade com opacidade 0→1 + translateY +10→0 ao
+// longo de ~10 frames, com delay = índice × stagger (4 frames padrão).
+// Depois de montado, ESTÁVEL — sem respiro/oscilação contínua (regra da
+// Seção 1: movimento só na entrada).
 export const TextoCinetico: React.FC<{
   texto: string;
   modo?: "palavra" | "letra";
   fontSize?: number;
   cor?: string;
   peso?: number;
-  stagger?: number; // frames entre cada unidade
-  delay?: number; // frames antes da primeira unidade
-  duracaoEntrada?: number; // frames de cada entrada
+  stagger?: number; // frames entre cada unidade (2.3 = 4)
+  delay?: number;
+  duracaoEntrada?: number; // frames de cada entrada (2.3 = 10)
   lineHeight?: number;
   align?: React.CSSProperties["textAlign"];
   style?: React.CSSProperties;
@@ -28,18 +25,15 @@ export const TextoCinetico: React.FC<{
   fontSize = 34,
   cor = COR_TEXTO,
   peso = 500,
-  stagger = 2,
+  stagger = 4,
   delay = 0,
-  duracaoEntrada = 12,
+  duracaoEntrada = 10,
   lineHeight = 1.4,
   align = "left",
   style,
 }) => {
   const frame = useCurrentFrame();
-
-  // Divide preservando espaços quando em modo palavra.
-  const unidades =
-    modo === "letra" ? Array.from(texto) : texto.split(/(\s+)/);
+  const unidades = modo === "letra" ? Array.from(texto) : texto.split(/(\s+)/);
 
   return (
     <div
@@ -54,7 +48,6 @@ export const TextoCinetico: React.FC<{
       }}
     >
       {unidades.map((unidade, i) => {
-        // Espaços em branco no modo palavra não animam (só ocupam espaço).
         const ehEspaco = /^\s+$/.test(unidade);
         const inicio = delay + i * stagger;
         const progresso = interpolate(
@@ -63,13 +56,8 @@ export const TextoCinetico: React.FC<{
           [0, 1],
           { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
         );
-        // Respiro contínuo pós-entrada (amplitude minúscula, mas nunca zero).
-        const respiro = Math.sin((frame + i * 6) / 22) * 1.2 * progresso;
-        const y = (1 - progresso) * 18 + respiro;
-
-        if (ehEspaco) {
-          return <span key={i}>{unidade}</span>;
-        }
+        const y = (1 - progresso) * 10; // +10px → 0
+        if (ehEspaco) return <span key={i}>{unidade}</span>;
         return (
           <span
             key={i}

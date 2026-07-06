@@ -1,90 +1,49 @@
 import React from "react";
-import { interpolate, useCurrentFrame } from "remotion";
-import { FundoCena, Legenda, PalcoCentral, PropsCena } from "./_Base";
+import { FundoCena, Legenda, PalcoCentral, PropsCena, CamadaApoio } from "./_Base";
 import { LineArtDraw } from "../animacao/LineArtDraw";
-import { COR_DESTAQUE } from "../cores";
+import { SeloBadge } from "../animacao/SeloBadge";
 
-// visual_tipo valorizacao_casa: uma casa em line-art com uma seta
-// ascendente e rótulos de percentual (+18%, +25%, +34%) surgindo em
-// sequência, cada um mais alto que o anterior — o imóvel valorizando ao
-// longo do tempo.
+// visual_tipo valorizacao_casa — implementa o EXEMPLO 6.1 frame a frame:
+// casa em line-art desenha em partes (telhado → parede → porta, com
+// defasagem de ~8f), depois o selo circular (5.1) entra na camada de
+// apoio (translateZ 150→100 + rotateY -15°→0°) e o contador conta 0→+18%.
+// Depois, estável. 2D principal: stroke-draw + contador. 3D: rotateY no
+// selo. Recurso do meio-termo: 5.1 Selo badge (único da cena).
 
-const CASA_D =
-  "M20 55 L50 30 L80 55 M28 50 L28 82 L72 82 L72 50 M44 82 L44 64 L56 64 L56 82";
-const SETA_D = "M15 85 L85 20 M85 20 L70 22 M85 20 L83 35";
-
-const MARCOS = [
-  { pct: "+18%", x: 30, y: 62 },
-  { pct: "+25%", x: 52, y: 44 },
-  { pct: "+34%", x: 74, y: 26 },
-];
+// Casa dividida em 3 partes para desenhar em sequência (Seção 2.1).
+const TELHADO_D = "M20 55 L50 30 L80 55";
+const PAREDE_D = "M28 50 L28 82 L72 82 L72 50";
+const PORTA_D = "M44 82 L44 64 L56 64 L56 82";
 
 export const ValorizacaoCasa: React.FC<PropsCena> = ({ texto }) => {
-  const frame = useCurrentFrame();
-
   return (
     <FundoCena>
+      {/* PRINCIPAL: casa em line-art, partes em sequência */}
       <PalcoCentral>
-        <div
-          style={{
-            position: "relative",
-            width: 820,
-            height: 480,
-            transformStyle: "preserve-3d",
-          }}
-        >
-          {/* Casa desenhada primeiro */}
-          <div style={{ position: "absolute", left: 40, bottom: 20, width: 360, height: 360 }}>
-            <LineArtDraw
-              paths={[{ d: CASA_D, comprimento: 320 }]}
-              viewBox="0 0 100 100"
-              delay={4}
-              duracao={36}
-              strokeWidth={2.2}
-            />
-          </div>
-          {/* Seta ascendente desenhada depois */}
-          <div style={{ position: "absolute", left: 0, top: 0, width: 820, height: 480 }}>
-            <LineArtDraw
-              paths={[{ d: SETA_D, comprimento: 200 }]}
-              viewBox="0 0 100 100"
-              delay={30}
-              duracao={40}
-              strokeWidth={2}
-            />
-          </div>
-          {/* Rótulos de % surgindo em sequência sobre a trajetória da seta */}
-          {MARCOS.map((m, i) => {
-            const inicio = 44 + i * 16;
-            const p = interpolate(frame, [inicio, inicio + 14], [0, 1], {
-              extrapolateLeft: "clamp",
-              extrapolateRight: "clamp",
-            });
-            // Selo % em camada Z mais À FRENTE da casa (3.3), entrando
-            // com leve profundidade depois que a casa se desenhou; depois
-            // fica estável.
-            return (
-              <div
-                key={i}
-                style={{
-                  position: "absolute",
-                  left: `${m.x}%`,
-                  top: `${m.y}%`,
-                  transform: `perspective(1200px) translate(-50%, -50%) translateZ(${70 + (1 - p) * -120}px) rotateY(${(1 - p) * 12}deg)`,
-                  opacity: p,
-                  fontFamily: "Arial, Helvetica, sans-serif",
-                  fontSize: 44,
-                  fontWeight: 800,
-                  color: COR_DESTAQUE,
-                  textShadow: "0 6px 14px rgba(0,0,0,0.5)",
-                }}
-              >
-                {m.pct}
-              </div>
-            );
-          })}
+        <div style={{ width: 420, height: 420 }}>
+          <LineArtDraw
+            paths={[
+              { d: TELHADO_D, comprimento: 90 },
+              { d: PAREDE_D, comprimento: 130 },
+              { d: PORTA_D, comprimento: 60 },
+            ]}
+            viewBox="0 0 100 100"
+            delay={6}
+            duracao={20}
+            passoEscalonar={8}
+            strokeWidth={2.4}
+          />
         </div>
       </PalcoCentral>
+
+      {/* APOIO (Z 100): selo de porcentagem com contador, entra depois
+          da casa terminar de desenhar (~frame 48). */}
+      <CamadaApoio>
+        <div style={{ position: "absolute", right: 470, top: 250 }}>
+          <SeloBadge valorFinal={18} formato="percentual" prefixoSinal rotulo="ao ano" delay={48} tamanho={150} />
+        </div>
+      </CamadaApoio>
+
       <Legenda texto={texto} />
     </FundoCena>
   );

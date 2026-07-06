@@ -17,6 +17,12 @@ const CHROME = "/opt/pw-browsers/chromium_headless_shell-1194/chrome-linux/headl
 const CENAS_BRUTAS = [
   {
     texto_narrado:
+      "Um imóvel bem localizado se valoriza ano após ano — foi o que aconteceu aqui, com ganho consistente.",
+    visual: "Casa valorizando",
+    visual_tipo: "valorizacao_casa",
+  },
+  {
+    texto_narrado:
       "Repare como o preço médio do metro quadrado subiu, ano após ano, nessa região. Quem entrou cedo, construiu patrimônio.",
     visual: "Gráfico de preços por ano",
     visual_tipo: "grafico_precos_anos",
@@ -30,7 +36,7 @@ const CENAS_BRUTAS = [
   {
     texto_narrado:
       "Pouca oferta e muita procura empurram o preço para cima. É a lei mais básica, e a mais lucrativa, do mercado imobiliário.",
-    visual: "Balança de oferta e demanda",
+    visual: "Oferta e demanda",
     visual_tipo: "oferta_demanda_balanca",
   },
 ];

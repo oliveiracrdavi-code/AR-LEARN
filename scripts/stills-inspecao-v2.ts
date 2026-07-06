@@ -15,21 +15,23 @@ const INTRO = PISO_DURACAO_CENA_SEG; // DURACAO_INTRO_SEG = 5
 
 const CENAS_BRUTAS = [
   {
-    texto_narrado:
-      "Repare como o preço médio do metro quadrado subiu, ano após ano, nessa região. Quem entrou cedo, construiu patrimônio.",
+    texto_narrado: "Um imóvel bem localizado se valoriza ano após ano — ganho consistente.",
+    visual: "Casa valorizando",
+    visual_tipo: "valorizacao_casa",
+  },
+  {
+    texto_narrado: "Repare como o preço médio do metro quadrado subiu, ano após ano, nessa região.",
     visual: "Gráfico de preços por ano",
     visual_tipo: "grafico_precos_anos",
   },
   {
-    texto_narrado:
-      "O mercado se move em ciclos: aquecimento, estabilização, retração e recuperação. Entender a fase separa o investidor do apostador.",
+    texto_narrado: "O mercado se move em ciclos: aquecimento, estabilização, retração e recuperação.",
     visual: "Ciclo do mercado",
     visual_tipo: "ciclo_mercado_circular",
   },
   {
-    texto_narrado:
-      "Pouca oferta e muita procura empurram o preço para cima. É a lei mais básica, e a mais lucrativa, do mercado imobiliário.",
-    visual: "Balança de oferta e demanda",
+    texto_narrado: "Pouca oferta e muita procura empurram o preço para cima — a lei mais lucrativa do mercado.",
+    visual: "Oferta e demanda",
     visual_tipo: "oferta_demanda_balanca",
   },
 ];

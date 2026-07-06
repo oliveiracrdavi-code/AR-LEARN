@@ -1056,3 +1056,76 @@ passa a ser só sparkles discretos.
   oscilação contínua (MEDIANA < 1,2%). Resultado: PASSOU, média 1,13% /
   **mediana 0,25%** (holds calmos = estável). Stills das 3 transições
   auditados: profundidade 3D real (rotação de página + crossover em Z).
+
+---
+
+## Sessão — Especificação de Design DEFINITIVA (v4): 4 camadas Z, catálogo 2D, recursos de meio-termo
+
+Base: `AR_LEARN_Especificacao_Design_Final.pdf` (7 páginas), que SUPERA os
+manuais de animação anteriores. Problema é subjetivo ("faltando algo /
+simples demais"), então a spec é a "melhor hipótese testável" — com
+liberdade para propor extras justificados dentro das restrições.
+
+### Estrutura de 4 camadas Z (§4.1) — `cenas/_Base.tsx`
+Toda cena agora tem `perspective:1000` + `preserve-3d` com camadas fixas:
+FUNDO (translateZ -300: sparkles + halo), PRINCIPAL (0: ilustração),
+APOIO (100: selo/chip/grid via `CamadaApoio`), TEXTO (legenda/termo, à
+frente). **Ajuste justificado**: a camada de TEXTO ficou em Z 0 (não 200)
+e vem por último no DOM — `translateZ(200)` sob `perspective:1000`
+empurrava a legenda (na base) pra fora da tela; a hierarquia "mais à
+frente/legível" é garantida pela ordem de empilhamento.
+
+### Catálogo 2D (§2) — primitivas
+- `ContadorCinetico.tsx` (§2.5): conta 0→final em ~25f, formata
+  moeda/percentual/número/milhar por quadro.
+- `TextoCinetico` (§2.3) e `BarraAnimada` (§2.2) reescritos: sem "respiro"
+  contínuo — entram e ESTABILIZAM. Barra usa `Easing.out(cubic)`.
+
+### Recursos de meio-termo (§5) — máx. 1-2 por cena (Tabela §7)
+Novos: `SeloBadge` (5.1, anel via stroke-dashoffset + contador + spring),
+`MiniGrid` (5.2, blocos + contador, SEM ícone de pessoa), `ChipNumerado`
+(5.3, "N de T"), `TrilhaConectada` (5.4, linha + nós acendendo),
+`CaixaReforco` (5.5), `GanchoPergunta` (5.7).
+
+### Extras aprovados por Davi (§0, com justificativa)
+- **Monograma AR** (`MonogramaAR.tsx`): assinatura dourada persistente +
+  linha-trajetória no canto (motivo de continuidade). Renderizada acima da
+  TransitionSeries — não transiciona com as cenas.
+- **Depth-of-field**: `blur(2.5px)` SÓ na camada de fundo (-300), para
+  "vender" a profundidade real. NÃO conta como recurso.
+
+### Restrições cumpridas (§8)
+Zero silhueta humana (IconePessoa REMOVIDO de `Icones.tsx`; oferta_demanda
+migrada para MiniGrid de blocos), zero imagem de banco externa, zero emoji
+de fonte (tudo path SVG próprio).
+
+### 4 cenas do clipe reescritas (§6/§7)
+`ValorizacaoCasa` (casa em 3 paths sequenciais + SeloBadge +18%),
+`GraficoPrecosAnos` (barras com contador + TrilhaConectada de anos),
+`CicloMercadoCircular` (4 setores fixos, ativo avança em Z + ChipNumerado
+"N de 4"), `OfertaDemandaBalanca` (balança pequena + MiniGrid oferta/demanda).
+
+### Teste objetivo (§10) — `verificar-animacao.ts`
+- **Bug pego pelo próprio verifier**: a transição C (fade-z, 12f = 0,4s)
+  cabia inteira ENTRE duas amostras de 0,5s, aparecendo como salto de 7,9%
+  contra vizinhos calmos. Investigado com zoom quadro-a-quadro: o perfil é
+  uma CORCOVA (0,4→0,75→1,1→1,57→7,1→7,7→2,3→1,1%), não um pico isolado —
+  um crossfade eased legítimo (still do meio mostra as duas cenas
+  sobrepostas). Um corte seco de verdade poria ~toda a mudança num ÚNICO
+  quadro.
+- **Correção do discriminador** (não da animação): ao achar um candidato a
+  corte na amostragem grossa, o verifier dá zoom quadro-a-quadro e mede a
+  CONCENTRAÇÃO = maiorPasso ÷ soma dos passos. Corte seco ~1,0; transição
+  espalhada bem abaixo. Limite 0,6. A dissolve grafico→ciclo deu **0,28 =>
+  transição suave (ok)**. C passou de 12f→16f só por suavidade.
+- **Resultado**: PASSOU — sem congelado, sem corte seco, sem oscilação
+  contínua (média 0,85% / **mediana 0,20%**). Stills das 4 cenas + 3
+  transições auditados visualmente (legenda, selo, chip "2 de 4", trilha,
+  mini-grid, monograma AR, DOF — todos corretos).
+
+### Entregue / pendente
+- Clipe curto v4 (34,3s, sem áudio) renderizado e enviado ao Davi para
+  aprovação. Render completo NÃO disparado (aguarda aprovação).
+- PENDENTE p/ render completo: reescrever as outras 8 cenas para v4
+  (skyline, financiamento, localização, renda, short-stay, alerta,
+  checklist, genérico) conforme §4.2 + Tabela §7.

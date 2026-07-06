@@ -36,60 +36,58 @@ const CHROME = "/opt/pw-browsers/chromium_headless_shell-1194/chrome-linux/headl
 //      alta = a tela toda se mexendo o tempo todo = balanço, reprovado.
 const SEGUNDOS_ENTRE_AMOSTRAS = 0.5;
 const RAZAO_CORTE = 4.0; // pico > 4x vizinhos ...
-const ABS_CORTE_PCT = 4.0; // ... E acima de 4% = corte seco
+const ABS_CORTE_PCT = 4.0; // ... E acima de 4% = CANDIDATO a corte seco
 const MEDIANA_MAX_PCT = 1.2; // mediana acima disso = oscilação contínua
+// Ao achar um CANDIDATO a corte na amostragem grossa (0,5s), o verificador
+// dá um ZOOM quadro-a-quadro naquele intervalo pra decidir: transição suave
+// ou corte seco de verdade? O discriminador é a CONCENTRAÇÃO do movimento:
+//   - corte seco = a tela troca de uma vez => QUASE TODA a mudança do
+//     intervalo acontece num ÚNICO passo de 1 quadro (maiorPasso/soma ~ 1).
+//   - transição (crossfade/Z/rotação) = a mudança se espalha por vários
+//     quadros, subindo e descendo em corcova (ex.: dissolve grafico->ciclo
+//     tem pico ~7,7%/quadro mas soma ~28% => concentração ~0,28).
+// Um crossfade entre cenas bem diferentes gera picos por-quadro altos no
+// meio mesmo sendo suave; por isso o teste é a fração concentrada, não um
+// teto absoluto por quadro. Acima disto = corte seco real (reprova).
+const FRAC_CONCENTRACAO_CORTE = 0.6;
 
 // Props curtas de propósito, cobrindo vários visual_tipo diferentes —
 // testa o dispatcher inteiro (cada cena renderiza um componente
 // temático diferente) sem custo de um vídeo completo. Cada cena dura
 // 5s, então 1s de amostragem dá ~5 amostras por cena (pega
 // congelamento dentro da própria cena, não só no corte).
+// As MESMAS 4 cenas do clipe (valorizacao, grafico, ciclo, oferta) —
+// cobrem as 3 variações de transição (A/B/C) e 4 recursos diferentes
+// (5.1 selo, 5.4 trilha, 5.3 chip, 5.2 mini-grid). Duração pela fórmula
+// de leitura (aplicada em main()).
 const PROPS_VERIFICACAO = {
   titulo: "Como funciona o mercado imobiliário",
   trilha: "Fundamentos",
   modulo: "Mercado Imobiliário",
   cenas: [
     {
-      texto_narrado:
-        "Explica como a oferta e a demanda movem os preços dos imóveis em um bairro.",
+      texto_narrado: "Um imóvel bem localizado se valoriza ano após ano — ganho consistente.",
       duracao_seg: 5,
-      visual: "Balança de oferta e demanda",
-      visual_tipo: "oferta_demanda_balanca",
-    },
-    {
-      texto_narrado:
-        "Mostra como um imóvel bem localizado se valoriza ao longo do tempo, com a porcentagem subindo.",
-      duracao_seg: 5,
-      visual: "Casa com valorização",
+      visual: "Casa valorizando",
       visual_tipo: "valorizacao_casa",
     },
     {
-      texto_narrado:
-        "Apresenta o preço médio subindo ano a ano, de 2021 até 2026, em um gráfico de barras.",
+      texto_narrado: "Repare como o preço médio do metro quadrado subiu, ano após ano, nessa região.",
       duracao_seg: 5,
       visual: "Gráfico de preços por ano",
       visual_tipo: "grafico_precos_anos",
     },
     {
-      texto_narrado:
-        "Explica o ciclo do mercado: aquecimento, estabilização, retração e recuperação.",
+      texto_narrado: "O mercado se move em ciclos: aquecimento, estabilização, retração e recuperação.",
       duracao_seg: 5,
       visual: "Ciclo do mercado",
       visual_tipo: "ciclo_mercado_circular",
     },
     {
-      texto_narrado:
-        "Lista os erros mais comuns de quem compra um imóvel sem analisar direito.",
+      texto_narrado: "Pouca oferta e muita procura empurram o preço para cima — a lei mais lucrativa do mercado.",
       duracao_seg: 5,
-      visual: "Alerta de erros comuns",
-      visual_tipo: "alerta_erros",
-    },
-    {
-      texto_narrado:
-        "Fecha com o checklist do que avaliar antes de comprar, cada item ganhando um check.",
-      duracao_seg: 5,
-      visual: "Checklist final",
-      visual_tipo: "checklist_final",
+      visual: "Oferta e demanda",
+      visual_tipo: "oferta_demanda_balanca",
     },
   ],
 };
@@ -166,7 +164,7 @@ async function main() {
     const totalPixels = width * height;
 
     // Coleta % de cada intervalo.
-    type Amostra = { tA: string; tB: string; pct: number };
+    type Amostra = { tA: string; tB: string; pct: number; frameA: number; frameB: number };
     const amostras: Amostra[] = [];
     for (let i = 1; i < caminhos.length; i++) {
       const a = await carregarRGBA(caminhos[i - 1].caminho);
@@ -177,12 +175,49 @@ async function main() {
         tA: (caminhos[i - 1].frame / fps).toFixed(1),
         tB: (caminhos[i].frame / fps).toFixed(1),
         pct,
+        frameA: caminhos[i - 1].frame,
+        frameB: caminhos[i].frame,
       });
+    }
+
+    // Zoom quadro-a-quadro num intervalo: renderiza TODOS os quadros de
+    // frameA..frameB e devolve o MAIOR salto de 1 quadro e a SOMA de todos
+    // os saltos (%). A concentração (maior/soma) diz se foi corte seco (tudo
+    // num passo, ~1) ou transição espalhada (bem abaixo). Usado só nos
+    // candidatos a corte, pra não pagar o custo no vídeo inteiro.
+    async function perfilQuadroAQuadro(frameA: number, frameB: number): Promise<{ maior: number; soma: number }> {
+      let anterior: PNG | null = null;
+      let maior = 0;
+      let soma = 0;
+      for (let f = frameA; f <= frameB; f++) {
+        const caminho = path.join(dir, `zoom-${String(f).padStart(5, "0")}.png`);
+        await renderStill({
+          composition,
+          serveUrl,
+          output: caminho,
+          frame: f,
+          inputProps,
+          puppeteerInstance: browser,
+          browserExecutable: CHROME,
+        });
+        const atual = await carregarRGBA(caminho);
+        if (anterior) {
+          const d = pixelmatch(anterior.data, atual.data, undefined, width, height, { threshold: 0.1 });
+          const pct = (d / totalPixels) * 100;
+          maior = Math.max(maior, pct);
+          soma += pct;
+        }
+        anterior = atual;
+      }
+      return { maior, soma };
     }
 
     // Análise dos 3 critérios v3.
     const paradosZero: string[] = [];
     const cortes: string[] = [];
+    // Candidatos a corte pela amostragem grossa — confirmados só depois,
+    // pelo zoom quadro-a-quadro.
+    const candidatosCorte: { am: Amostra; ratio: number }[] = [];
 
     amostras.forEach((am, i) => {
       // vizinhos = até 2 antes e 2 depois, exceto o próprio
@@ -191,15 +226,34 @@ async function main() {
         if (k !== i && k >= 0 && k < amostras.length) viz.push(amostras[k].pct);
       }
       const mediaViz = viz.reduce((s, v) => s + v, 0) / (viz.length || 1);
-      // Corte seco = salto isolado desproporcional E absoluto alto.
-      const ehCorte = am.pct > RAZAO_CORTE * mediaViz && am.pct > ABS_CORTE_PCT;
+      // Candidato a corte = salto isolado desproporcional E absoluto alto.
+      const ehCandidato = am.pct > RAZAO_CORTE * mediaViz && am.pct > ABS_CORTE_PCT;
       const marcas =
         (am.pct === 0 ? "  <<< PARADO (ZERO)" : "") +
-        (ehCorte ? `  <<< CORTE SECO (${(am.pct / mediaViz).toFixed(1)}x vizinhos)` : "");
+        (ehCandidato ? `  <<< CANDIDATO A CORTE (${(am.pct / mediaViz).toFixed(1)}x vizinhos) — checar no zoom` : "");
       console.log(`  ${am.tA}s -> ${am.tB}s : ${am.pct.toFixed(3)}%${marcas}`);
       if (am.pct === 0) paradosZero.push(`${am.tA}->${am.tB}`);
-      if (ehCorte) cortes.push(`${am.tA}->${am.tB} (${(am.pct / mediaViz).toFixed(1)}x, ${am.pct.toFixed(1)}%)`);
+      if (ehCandidato) candidatosCorte.push({ am, ratio: am.pct / mediaViz });
     });
+
+    // ZOOM quadro-a-quadro nos candidatos: transição suave (movimento
+    // espalhado) ou corte seco de verdade (tudo num passo só)?
+    if (candidatosCorte.length) {
+      console.log("\n=== ZOOM QUADRO-A-QUADRO NOS CANDIDATOS A CORTE ===");
+      for (const { am, ratio } of candidatosCorte) {
+        const { maior, soma } = await perfilQuadroAQuadro(am.frameA, am.frameB);
+        const conc = soma > 0 ? maior / soma : 1;
+        const ehCorte = conc > FRAC_CONCENTRACAO_CORTE;
+        const veredito = ehCorte ? "CORTE SECO" : "transição suave (ok)";
+        console.log(
+          `  ${am.tA}s -> ${am.tB}s : maior passo ${maior.toFixed(2)}%, soma ${soma.toFixed(2)}%, ` +
+            `concentração ${conc.toFixed(2)} (limite ${FRAC_CONCENTRACAO_CORTE}) => ${veredito}`
+        );
+        if (ehCorte) {
+          cortes.push(`${am.tA}->${am.tB} (${ratio.toFixed(1)}x na amostragem, concentração ${conc.toFixed(2)})`);
+        }
+      }
+    }
 
     // Mediana do movimento (indicador de oscilação contínua / "balanço").
     const ordenadas = amostras.map((a) => a.pct).sort((x, y) => x - y);

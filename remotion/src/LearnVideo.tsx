@@ -5,11 +5,7 @@ import { z } from "zod";
 import { COR_FUNDO, COR_DESTAQUE, VISUAL_TIPOS } from "./cores";
 import { CENAS_POR_TIPO, GenericoFallback, SkylineAbertura } from "./cenas";
 import { transicaoVariada } from "./animacao/transicaoProfundidade";
-
-// Duração de cada transição entre cenas: ~800ms (topo da faixa 400-800ms),
-// com easing suave — espalha o movimento da troca por mais frames, para a
-// transição não virar um pico (o teste reprova pico > 2x os vizinhos).
-export const TRANSICAO_FRAMES = 24;
+import { MonogramaAR } from "./animacao/MonogramaAR";
 
 // Frames de narração de cada cena (arredondado por cena, para casar com o
 // cálculo de duração total da composição em Root.tsx).
@@ -122,9 +118,14 @@ function CenaView({ cena, duracaoFrames }: { cena: CenaVideo; duracaoFrames: num
 export function LearnVideo({ titulo, trilha, modulo, cenas, audioSrc }: LearnVideoProps) {
   const { fps } = useVideoConfig();
   const introFrames = Math.round(DURACAO_INTRO_SEG * fps);
-  const t = TRANSICAO_FRAMES;
   const nCenas = cenas.length;
   const framesCena = framesDeNarracao(cenas, fps);
+
+  // Transição ANTES da cena i = variação alternada (0=A,1=B,2=C,...) —
+  // nunca a mesma duas vezes seguidas (Seção 3.5). Cada variação tem sua
+  // própria duração (400-800ms).
+  const trans = cenas.map((_, i) => transicaoVariada(i));
+  const durTrans = (i: number) => trans[i].durationInFrames;
 
   const audioResolvido = audioSrc
     ? audioSrc.startsWith("http://") || audioSrc.startsWith("https://")
@@ -132,42 +133,35 @@ export function LearnVideo({ titulo, trilha, modulo, cenas, audioSrc }: LearnVid
       : staticFile(audioSrc)
     : undefined;
 
-  // TransitionSeries com transições de profundidade em TODAS as trocas
-  // (nenhum corte seco). A sobreposição da transição (t frames) "come" o
-  // padding que adicionamos a cada cena, de modo que a cena i SEMPRE
-  // começa exatamente em introFrames + soma das narrações anteriores —
-  // ou seja, o áudio (que começa em introFrames) fica sincronizado sem
-  // drift acumulado. Prova: cena_i.start = (introFrames+t) +
-  // Σ_{j<i}(n_j+t) − (i+1)·t = introFrames + Σ_{j<i} n_j. O intro e todas
-  // as cenas menos a última levam +t de padding; a última não (não há
-  // transição depois dela), então o total bate com a duração da narração.
+  // Sincronia de áudio com transições de duração VARIÁVEL: cada cena é
+  // "padada" pela duração da transição que a SUCEDE, e a sobreposição da
+  // transição consome esse padding — de modo que cena_i sempre começa em
+  // introFrames + Σ narrações anteriores (áudio começa em introFrames),
+  // sem drift, para quaisquer durações de transição. (Prova no histórico.)
   return (
     <AbsoluteFill style={{ backgroundColor: COR_FUNDO }}>
       {audioResolvido ? (
-        // A narração começa junto da primeira cena, não do card de
-        // título (que não tem texto narrado) — sem isso, áudio e vídeo
-        // saem fora de sincronia.
         <Sequence from={introFrames}>
           <Audio src={audioResolvido} />
         </Sequence>
       ) : null}
 
       <TransitionSeries>
-        <TransitionSeries.Sequence durationInFrames={introFrames + t}>
+        <TransitionSeries.Sequence durationInFrames={introFrames + durTrans(0)}>
           <TituloCard titulo={titulo} trilha={trilha} modulo={modulo} />
         </TransitionSeries.Sequence>
 
         {cenas.map((cena, indice) => {
           const ehUltima = indice === nCenas - 1;
-          const dur = framesCena[indice] + (ehUltima ? 0 : t);
+          const dur = framesCena[indice] + (ehUltima ? 0 : durTrans(indice + 1));
           return (
             <React.Fragment key={indice}>
               <TransitionSeries.Transition
                 timing={linearTiming({
-                  durationInFrames: t,
-                  easing: Easing.inOut(Easing.ease),
+                  durationInFrames: durTrans(indice),
+                  easing: Easing.inOut(Easing.cubic),
                 })}
-                presentation={transicaoVariada(indice)}
+                presentation={trans[indice].presentation}
               />
               <TransitionSeries.Sequence durationInFrames={dur}>
                 <CenaView cena={cena} duracaoFrames={dur} />
@@ -176,6 +170,10 @@ export function LearnVideo({ titulo, trilha, modulo, cenas, audioSrc }: LearnVid
           );
         })}
       </TransitionSeries>
+
+      {/* Motivo de continuidade: assinatura AR persistente (não
+          transiciona com as cenas). */}
+      <MonogramaAR />
     </AbsoluteFill>
   );
 }
