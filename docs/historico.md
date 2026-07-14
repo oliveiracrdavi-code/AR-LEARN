@@ -1129,3 +1129,19 @@ de fonte (tudo path SVG próprio).
 - PENDENTE p/ render completo: reescrever as outras 8 cenas para v4
   (skyline, financiamento, localização, renda, short-stay, alerta,
   checklist, genérico) conforme §4.2 + Tabela §7.
+
+---
+
+## Sessão — Banco Visual (Diretrizes V3 Manual Unificado + Banco de Imagens)
+
+Extraído o manual unificado (texto integral) e as 40 págs do Banco de
+Imagens (28 JPEGs embutidos). Implementado `remotion/src/finance/banco/`:
+16 ícones Finance Line (stroke 2.2/grade 32/ouro #D4AF37) com registro por
+nome + mapa conceito→ícone (manifesto.ts), componentes glass (CardCarbon,
+SeloPercentual, MiniTabela, BarrasOuro, ToastErro), FundoImagem (regra 70%
+ouro-e-concreto, Ken Burns, Humano Zero, fallback procedural) e a
+composição VitrineBanco p/ auditoria. Regras e protocolo de expansão
+contínua em docs/banco-visual.md (divergências de token flagradas p/
+decisão). PDF Motion System V3 de 105 págs não extraível neste ambiente
+(imagens em codificação não suportada, sem ToUnicode) — coberto pelo
+manual unificado + PDF de 18 págs já processado.
