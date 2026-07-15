@@ -1145,3 +1145,17 @@ contínua em docs/banco-visual.md (divergências de token flagradas p/
 decisão). PDF Motion System V3 de 105 págs não extraível neste ambiente
 (imagens em codificação não suportada, sem ToUnicode) — coberto pelo
 manual unificado + PDF de 18 págs já processado.
+
+---
+
+## Sessão — PDF Manchete Premium (homepage hero, ep. 171)
+
+Gerador `scripts/gerar-manchete-premium.ts` (HTML -> Playwright, padrão do
+projeto; ReportLab/PyMuPDF do prompt indisponível — pip sem rede). 2 págs
+1080x1920 na paleta do template (#020202/#FACB4F/#FF7A1A): pág.1 hero
+(lockup Academy real extraído do template + manchete XXL Poppins 800 +
+caixa branca de descrição), pág.2 com 6 componentes VETORIAIS (KPI, spark,
+donut, comparison, fórmula, grid — fallback do próprio prompt, banco V2
+não enviado) + 3 dados-chave + CTA. Fix importante: setContent bloqueia
+subrecursos file:// => fontes/logo embutidos como data URIs. Logs de
+extração e validação em scripts/output/. Novo asset: public/logo-ar-academy.jpg.
