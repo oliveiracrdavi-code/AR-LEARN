@@ -78,3 +78,38 @@ export const VitrineBanco: React.FC = () => {
     </AbsoluteFill>
   );
 };
+
+// Vitrine 2 — componentes colhidos do Banco V2 (Jornada + Citação).
+import { TimelineJornada, CardCitacao } from "./componentes";
+
+export const VitrineJornada: React.FC = () => {
+  usePoppins();
+  return (
+    <AbsoluteFill>
+      <FundoImagem />
+      <div style={{ position: "absolute", left: 80, top: 60, fontFamily: FONTE, fontWeight: 700, fontSize: 34, color: OURO, letterSpacing: 4 }}>
+        JORNADA DO INVESTIDOR — BANCO V2
+      </div>
+      <div style={{ position: "absolute", left: 80, top: 220 }}>
+        <TimelineJornada
+          ativa={2}
+          largura={1360}
+          etapas={[
+            { icone: "bandeira", titulo: "Começo", descricao: "Organize suas finanças e crie sua reserva de emergência.", chip: "0–12 MESES" },
+            { icone: "moedas", titulo: "Consolidação", descricao: "Invista com consistência e diversifique seus investimentos.", chip: "1–3 ANOS" },
+            { icone: "grafico_linha", titulo: "Crescimento", descricao: "Seus investimentos começam a trabalhar por você.", chip: "3–10 ANOS" },
+            { icone: "casa", titulo: "Independência", descricao: "Sua renda passiva cobre seus custos mensais.", chip: "10–20 ANOS" },
+            { icone: "diamante", titulo: "Liberdade", descricao: "Você tem tempo e escolhas para viver a vida que deseja.", chip: "20+ ANOS" },
+          ]}
+        />
+      </div>
+      <div style={{ position: "absolute", right: 90, bottom: 120 }}>
+        <CardCitacao
+          texto="Não é sobre quanto você ganha, mas sobre quanto você investe e por quanto tempo."
+          autor="Educador Financeiro"
+          atraso={12}
+        />
+      </div>
+    </AbsoluteFill>
+  );
+};

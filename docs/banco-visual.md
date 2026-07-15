@@ -19,10 +19,10 @@ surgem **JUNTOS** (aparição sequencial = erro). Nenhum frame estático.
 
 ## Inventário atual
 
-### Ícones (16) — `ICONES_FINANCE`
+### Ícones (18) — `ICONES_FINANCE`
 valorizacao · rentabilidade · seguranca · retorno · ativo_imovel · casa ·
 chave · contrato · localizacao · moedas · nota · grafico_linha · tempo ·
-cofre · alerta · ampulheta
+cofre · alerta · ampulheta · bandeira · diamante *(+2 da Jornada, Banco V2)*
 
 Mapa conceito→ícone (para a esteira resolver roteiro→visual):
 `manifesto.ts` (`CONCEITO_PARA_ICONE`, ~35 conceitos).
@@ -33,12 +33,20 @@ Mapa conceito→ícone (para a esteira resolver roteiro→visual):
 - `MiniTabela` — comparativo (ex.: Bairros A/B/C), linha destaque ouro
 - `BarrasOuro` — barras com degradê `#D4AF37→#C6972F`, spring
 - `ToastErro` — pílula glass com `IcAlerta` laranja (erros comuns)
+- `TimelineJornada` — linha do tempo de etapas (Jornada do Investidor,
+  colhida do Banco V2): círculo+ícone, etapa ativa em ouro, chips de prazo
+- `CardCitacao` — card de citação com aspas ouro (Banco V2)
 
 ### Fundos (70%)
 Catálogo em `manifesto.ts` (`FUNDOS`) — 5 conceitos mapeados, **todos
 `pendente`**: os arquivos de imagem reais precisam de fonte licenciada
 aprovada pelo Davi antes de versionar (Regra de Ouro: nada sem origem
 clara). Até lá o fallback procedural cobre.
+
+### Marca (lockups oficiais em public/)
+`logo-ar.jpg` (badge quadrado) · `logo-ar-academy.jpg` (card Academy) ·
+`logo-ar-horizontal.jpg` (fundo branco, do Banco V2) ·
+`logo-ar-amarelo.jpg` (fundo amarelo, do Banco V2)
 
 ## Protocolo de expansão contínua (responsabilidade do Claude)
 Quando um roteiro pedir conceito sem ativo:

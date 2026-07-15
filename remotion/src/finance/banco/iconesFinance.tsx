@@ -177,6 +177,22 @@ export const IcAmpulheta: React.FC<PropsIconeFinance> = (p) => (
   </Svg32>
 );
 
+// Bandeira: começo/marco (etapa 01 da Jornada do Investidor — Banco V2).
+export const IcBandeira: React.FC<PropsIconeFinance> = (p) => (
+  <Svg32 {...p}>
+    <path d="M8 28.5 V4.5" />
+    <path d="M8 6 H23.5 L19.5 10.5 L23.5 15 H8" />
+  </Svg32>
+);
+
+// Diamante: liberdade/patrimônio consolidado (etapa 05 da Jornada — V2).
+export const IcDiamante: React.FC<PropsIconeFinance> = (p) => (
+  <Svg32 {...p}>
+    <path d="M10 5.5 H22 L27.5 12 L16 27 L4.5 12 Z" />
+    <path d="M4.5 12 H27.5 M10 5.5 L13 12 L16 27 M22 5.5 L19 12 L16 27" />
+  </Svg32>
+);
+
 // REGISTRO POR NOME — o "banco de dados" consultável pela esteira. Roteiro
 // pede um conceito; se não existir aqui, o conceito é FLAGRADO e um ícone
 // novo é desenhado (nunca inventar visual fora do padrão, nunca emoji).
@@ -197,6 +213,8 @@ export const ICONES_FINANCE = {
   cofre: IcCofre,
   alerta: IcAlerta,
   ampulheta: IcAmpulheta,
+  bandeira: IcBandeira,
+  diamante: IcDiamante,
 } as const;
 
 export type NomeIconeFinance = keyof typeof ICONES_FINANCE;

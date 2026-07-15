@@ -1159,3 +1159,14 @@ donut, comparison, fórmula, grid — fallback do próprio prompt, banco V2
 não enviado) + 3 dados-chave + CTA. Fix importante: setContent bloqueia
 subrecursos file:// => fontes/logo embutidos como data URIs. Logs de
 extração e validação em scripts/output/. Novo asset: public/logo-ar-academy.jpg.
+
+---
+
+## Sessão — Banco V2 recebido: colheita p/ o Banco Visual
+
+Extraído o Banco_de_dados_de_imagem_V2 (72 págs, 69 JPEGs). Colhido:
+lockups oficiais horizontal/amarelo -> public/, componente TimelineJornada
+(Jornada do Investidor, 5 etapas, ativa em ouro) + CardCitacao, ícones
+bandeira e diamante (18 no total), conceitos novos no manifesto. Vitrine
+2 (VitrineJornada) para auditoria. Restante do V2 = material-fonte de
+inspiração (refs Figma/Spline, silhuetas) — não versionado.

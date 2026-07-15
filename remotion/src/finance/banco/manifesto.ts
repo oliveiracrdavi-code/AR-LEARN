@@ -51,6 +51,12 @@ export const CONCEITO_PARA_ICONE: Record<string, NomeIconeFinance> = {
   armadilha: "alerta",
   "janela de entrada": "ampulheta",
   oportunidade: "ampulheta",
+  comeco: "bandeira",
+  marco: "bandeira",
+  meta: "bandeira",
+  liberdade: "diamante",
+  "liberdade financeira": "diamante",
+  patrimonio_consolidado: "diamante",
 };
 
 // Fundos (70%) — catálogo de imagens em public/imagens/. status "pendente"

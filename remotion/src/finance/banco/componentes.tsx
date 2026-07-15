@@ -221,3 +221,93 @@ export const ToastErro: React.FC<{ texto: string; atraso?: number }> = ({ texto,
     </div>
   );
 };
+
+// LINHA DO TEMPO "JORNADA" (colhida do Banco V2: "Do zero à liberdade
+// financeira"): N etapas com círculo+ícone ligados por linha; a etapa
+// ATIVA fica em ouro (círculo cheio + rótulo + chip); as demais em cinza.
+// Montagem em cascata (princípio "Montar"). 2D puro.
+import { IconeFinance } from "./iconesFinance";
+import { ONYX_MIDNIGHT } from "../tokens";
+
+export interface EtapaJornada {
+  icone: string; // nome no banco de ícones
+  titulo: string;
+  descricao: string;
+  chip: string; // ex.: "0–12 MESES"
+}
+
+export const TimelineJornada: React.FC<{
+  etapas: EtapaJornada[];
+  ativa: number;
+  atraso?: number;
+  largura?: number;
+}> = ({ etapas, ativa, atraso = 0, largura = 1500 }) => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  return (
+    <div style={{ display: "flex", width: largura, justifyContent: "space-between", gap: 18 }}>
+      {etapas.map((e, i) => {
+        const p = spring({ frame: frame - (atraso + i * 4), fps, durationInFrames: 16, config: { damping: 200 } });
+        const on = i === ativa;
+        return (
+          <div key={i} style={{ flex: 1, position: "relative", textAlign: "center", opacity: p, transform: `translateY(${interpolate(p, [0, 1], [22, 0])}px)`, fontFamily: FONTE }}>
+            {i < etapas.length - 1 ? (
+              <div style={{ position: "absolute", top: 58, left: "50%", width: "100%", height: 2, background: "rgba(244,241,234,0.18)" }} />
+            ) : null}
+            <div style={{ fontWeight: 700, fontSize: 20, letterSpacing: 2, color: on ? OURO : "rgba(244,241,234,0.55)" }}>
+              {String(i + 1).padStart(2, "0")}
+            </div>
+            <div
+              style={{
+                position: "relative",
+                width: 76,
+                height: 76,
+                margin: "10px auto",
+                borderRadius: "50%",
+                background: on ? OURO : "rgba(244,241,234,0.16)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                boxShadow: on ? "0 0 26px rgba(212,175,55,0.5)" : undefined,
+              }}
+            >
+              <IconeFinance nome={e.icone} tamanho={40} cor={on ? ONYX_MIDNIGHT : IVORY} />
+            </div>
+            <div style={{ fontWeight: 700, fontSize: 19, letterSpacing: 2, color: on ? OURO : IVORY, textTransform: "uppercase" }}>{e.titulo}</div>
+            <div style={{ fontWeight: 400, fontSize: 16.5, color: "rgba(244,241,234,0.7)", lineHeight: 1.35, marginTop: 8, minHeight: 66 }}>{e.descricao}</div>
+            <div
+              style={{
+                display: "inline-block",
+                marginTop: 8,
+                padding: "7px 16px",
+                borderRadius: 999,
+                fontWeight: 700,
+                fontSize: 14.5,
+                letterSpacing: 1,
+                background: on ? OURO : "rgba(244,241,234,0.12)",
+                color: on ? ONYX_MIDNIGHT : IVORY,
+              }}
+            >
+              {e.chip}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+
+// CARD DE CITAÇÃO (Banco V2): aspas grandes em ouro + frase Ivory +
+// autoria — glass com borda ouro fina.
+export const CardCitacao: React.FC<{
+  texto: string;
+  autor: string;
+  atraso?: number;
+  largura?: number;
+}> = ({ texto, autor, atraso = 0, largura = 460 }) => (
+  <CardCarbon atraso={atraso} largura={largura} style={{ padding: "28px 32px", border: `1.5px solid rgba(212,175,55,0.6)` }}>
+    <div style={{ fontFamily: FONTE, fontWeight: 800, fontSize: 52, lineHeight: 0.6, color: OURO }}>&ldquo;</div>
+    <div style={{ fontFamily: FONTE, fontWeight: 600, fontSize: 25, color: IVORY, lineHeight: 1.4, marginTop: 10 }}>{texto}</div>
+    <div style={{ fontFamily: FONTE, fontWeight: 400, fontSize: 19, color: "rgba(244,241,234,0.65)", marginTop: 14 }}>&mdash; {autor}</div>
+  </CardCarbon>
+);
