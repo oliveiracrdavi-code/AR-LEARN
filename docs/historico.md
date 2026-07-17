@@ -1170,3 +1170,17 @@ lockups oficiais horizontal/amarelo -> public/, componente TimelineJornada
 bandeira e diamante (18 no total), conceitos novos no manifesto. Vitrine
 2 (VitrineJornada) para auditoria. Restante do V2 = material-fonte de
 inspiração (refs Figma/Spline, silhuetas) — não versionado.
+
+---
+
+## Sessão — Vídeo longo 16:9 ep.171 (design do clipe aprovado)
+
+Composição VideoLongo171: 12.847f (7,14min) 1920x1080, 10 seções
+data-driven na paleta EXATA do clipe de 30s aprovado. Banco expandido no
+caminho (DonutOuro, FormulaCard, BadgeContexto, IconeAnimado 3 variantes,
+LegendaSincronizada; ícones calendario+concluido = 20). Payload STAND-IN
+do ep.171 (dados-chave reais; narração provisória) — aguarda
+learn_estruturado.json real do Workspace 1. Render local mudo (TTS no
+CI): ar_learn_171_16x9_final.mp4 (137MB). Frame-diff 2s nos 7min08:
+nenhum intervalo congelado (min 0,0165%). Parado aguardando aprovação —
+sem Phase 3.
