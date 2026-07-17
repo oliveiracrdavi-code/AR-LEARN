@@ -1184,3 +1184,17 @@ learn_estruturado.json real do Workspace 1. Render local mudo (TTS no
 CI): ar_learn_171_16x9_final.mp4 (137MB). Frame-diff 2s nos 7min08:
 nenhum intervalo congelado (min 0,0165%). Parado aguardando aprovação —
 sem Phase 3.
+
+---
+
+## Sessão — Ajuste v2 + Phase 3 (Altamente Rentável Academy)
+
+Vídeo v2: intro/outro 15s exatos + botão goldenrod "Ver Episódio
+Completo" (total 12.300f = 6:50); learn_estruturado.json/config/log de
+timing gerados. Phase 3 executada sem paradas (ordem do Davi): migration
+academy (ebook_url, stripe, compra por learn, RLS), seed ep.171, Stripe
+SDK (checkout Pix + webhook aprovando compra), frontend completo na
+paleta travada (landing hero+player+Ebook+preço, /comprar, /aguardando,
+/entrar magic link, /admin), build passando, 4 screenshots. MCP Stripe
+desconectado na sessão (registrado). Bloqueios do Davi: credenciais
+Supabase/Stripe, habilitar Pix, storage do vídeo/Ebook.

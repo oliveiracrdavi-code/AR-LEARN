@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
+import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "AR LEARN",
-  description: "Jornada do Conhecimento — Altamente Rentável",
+  title: "Altamente Rentável Academy",
+  description:
+    "Altamente Rentável Academy — videoaulas, Ebooks e mapas mentais gerados a partir do podcast Altamente Rentável (mercado imobiliário).",
 };
 
 export default function RootLayout({
