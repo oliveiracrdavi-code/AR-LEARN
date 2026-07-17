@@ -193,6 +193,24 @@ export const IcDiamante: React.FC<PropsIconeFinance> = (p) => (
   </Svg32>
 );
 
+
+// Calendário: recorrência/prazo mensal (pedido do vídeo longo ep.171).
+export const IcCalendario: React.FC<PropsIconeFinance> = (p) => (
+  <Svg32 {...p}>
+    <rect x="4.5" y="7" width="23" height="20.5" rx="2.5" />
+    <path d="M4.5 13 H27.5 M10.5 4.5 V9.5 M21.5 4.5 V9.5" />
+    <path d="M9.5 18 H12 M15 18 H17.5 M20.5 18 H23 M9.5 22.5 H12 M15 22.5 H17.5" />
+  </Svg32>
+);
+
+// Concluído: check em círculo (recap/checklist do vídeo longo).
+export const IcConcluido: React.FC<PropsIconeFinance> = (p) => (
+  <Svg32 {...p}>
+    <circle cx="16" cy="16" r="11.5" />
+    <path d="M10.5 16.5 L14.3 20.3 L21.5 12.5" />
+  </Svg32>
+);
+
 // REGISTRO POR NOME — o "banco de dados" consultável pela esteira. Roteiro
 // pede um conceito; se não existir aqui, o conceito é FLAGRADO e um ícone
 // novo é desenhado (nunca inventar visual fora do padrão, nunca emoji).
@@ -215,6 +233,8 @@ export const ICONES_FINANCE = {
   ampulheta: IcAmpulheta,
   bandeira: IcBandeira,
   diamante: IcDiamante,
+  calendario: IcCalendario,
+  concluido: IcConcluido,
 } as const;
 
 export type NomeIconeFinance = keyof typeof ICONES_FINANCE;

@@ -241,7 +241,9 @@ export const TimelineJornada: React.FC<{
   ativa: number;
   atraso?: number;
   largura?: number;
-}> = ({ etapas, ativa, atraso = 0, largura = 1500 }) => {
+  corDestaque?: string; // default OURO (manual V3); o vídeo longo passa o amarelo do clipe
+  corTexto?: string;
+}> = ({ etapas, ativa, atraso = 0, largura = 1500, corDestaque = OURO, corTexto = IVORY }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   return (
@@ -254,7 +256,7 @@ export const TimelineJornada: React.FC<{
             {i < etapas.length - 1 ? (
               <div style={{ position: "absolute", top: 58, left: "50%", width: "100%", height: 2, background: "rgba(244,241,234,0.18)" }} />
             ) : null}
-            <div style={{ fontWeight: 700, fontSize: 20, letterSpacing: 2, color: on ? OURO : "rgba(244,241,234,0.55)" }}>
+            <div style={{ fontWeight: 700, fontSize: 20, letterSpacing: 2, color: on ? corDestaque : "rgba(244,241,234,0.55)" }}>
               {String(i + 1).padStart(2, "0")}
             </div>
             <div
@@ -264,16 +266,16 @@ export const TimelineJornada: React.FC<{
                 height: 76,
                 margin: "10px auto",
                 borderRadius: "50%",
-                background: on ? OURO : "rgba(244,241,234,0.16)",
+                background: on ? corDestaque : "rgba(244,241,234,0.16)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                boxShadow: on ? "0 0 26px rgba(212,175,55,0.5)" : undefined,
+                boxShadow: on ? `0 0 26px ${corDestaque}80` : undefined,
               }}
             >
-              <IconeFinance nome={e.icone} tamanho={40} cor={on ? ONYX_MIDNIGHT : IVORY} />
+              <IconeFinance nome={e.icone} tamanho={40} cor={on ? ONYX_MIDNIGHT : corTexto} />
             </div>
-            <div style={{ fontWeight: 700, fontSize: 19, letterSpacing: 2, color: on ? OURO : IVORY, textTransform: "uppercase" }}>{e.titulo}</div>
+            <div style={{ fontWeight: 700, fontSize: 19, letterSpacing: 2, color: on ? corDestaque : corTexto, textTransform: "uppercase" }}>{e.titulo}</div>
             <div style={{ fontWeight: 400, fontSize: 16.5, color: "rgba(244,241,234,0.7)", lineHeight: 1.35, marginTop: 8, minHeight: 66 }}>{e.descricao}</div>
             <div
               style={{
@@ -284,8 +286,8 @@ export const TimelineJornada: React.FC<{
                 fontWeight: 700,
                 fontSize: 14.5,
                 letterSpacing: 1,
-                background: on ? OURO : "rgba(244,241,234,0.12)",
-                color: on ? ONYX_MIDNIGHT : IVORY,
+                background: on ? corDestaque : "rgba(244,241,234,0.12)",
+                color: on ? ONYX_MIDNIGHT : corTexto,
               }}
             >
               {e.chip}
@@ -304,9 +306,10 @@ export const CardCitacao: React.FC<{
   autor: string;
   atraso?: number;
   largura?: number;
-}> = ({ texto, autor, atraso = 0, largura = 460 }) => (
-  <CardCarbon atraso={atraso} largura={largura} style={{ padding: "28px 32px", border: `1.5px solid rgba(212,175,55,0.6)` }}>
-    <div style={{ fontFamily: FONTE, fontWeight: 800, fontSize: 52, lineHeight: 0.6, color: OURO }}>&ldquo;</div>
+  corDestaque?: string;
+}> = ({ texto, autor, atraso = 0, largura = 460, corDestaque = OURO }) => (
+  <CardCarbon atraso={atraso} largura={largura} style={{ padding: "28px 32px", border: `1.5px solid ${corDestaque}99` }}>
+    <div style={{ fontFamily: FONTE, fontWeight: 800, fontSize: 52, lineHeight: 0.6, color: corDestaque }}>&ldquo;</div>
     <div style={{ fontFamily: FONTE, fontWeight: 600, fontSize: 25, color: IVORY, lineHeight: 1.4, marginTop: 10 }}>{texto}</div>
     <div style={{ fontFamily: FONTE, fontWeight: 400, fontSize: 19, color: "rgba(244,241,234,0.65)", marginTop: 14 }}>&mdash; {autor}</div>
   </CardCarbon>

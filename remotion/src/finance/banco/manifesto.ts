@@ -57,6 +57,12 @@ export const CONCEITO_PARA_ICONE: Record<string, NomeIconeFinance> = {
   liberdade: "diamante",
   "liberdade financeira": "diamante",
   patrimonio_consolidado: "diamante",
+  recorrencia: "calendario",
+  mensal: "calendario",
+  calendario: "calendario",
+  concluido: "concluido",
+  checklist: "concluido",
+  feito: "concluido",
 };
 
 // Fundos (70%) — catálogo de imagens em public/imagens/. status "pendente"
