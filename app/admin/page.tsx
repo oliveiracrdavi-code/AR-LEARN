@@ -62,7 +62,7 @@ export default async function AdminPage({ searchParams }: Props) {
       ) : (
         <>
           <h2 className="kicker" style={{ marginTop: 30 }}>Learns</h2>
-          <table style={{ borderCollapse: "collapse", width: "100%", marginTop: 12, background: "var(--dark-void)", borderRadius: 12 }}>
+          <div className="tabela-scroll" style={{ marginTop: 12 }}><table style={{ borderCollapse: "collapse", width: "100%", background: "var(--dark-void)", borderRadius: 12, minWidth: 560 }}>
             <thead>
               <tr style={{ color: "var(--dusty-grey)" }}>
                 <th style={celula}>Título</th><th style={celula}>Slug</th><th style={celula}>Status</th><th style={celula}>Preço</th>
@@ -81,10 +81,10 @@ export default async function AdminPage({ searchParams }: Props) {
                 <tr><td style={celula} colSpan={4}>Nenhum Learn cadastrado (rode o seed).</td></tr>
               ) : null}
             </tbody>
-          </table>
+          </table></div>
 
           <h2 className="kicker" style={{ marginTop: 34 }}>Últimas compras</h2>
-          <table style={{ borderCollapse: "collapse", width: "100%", marginTop: 12, background: "var(--dark-void)", borderRadius: 12 }}>
+          <div className="tabela-scroll" style={{ marginTop: 12 }}><table style={{ borderCollapse: "collapse", width: "100%", background: "var(--dark-void)", borderRadius: 12, minWidth: 560 }}>
             <thead>
               <tr style={{ color: "var(--dusty-grey)" }}>
                 <th style={celula}>Quando</th><th style={celula}>Provedor</th><th style={celula}>Valor</th><th style={celula}>Status</th>
@@ -103,7 +103,7 @@ export default async function AdminPage({ searchParams }: Props) {
                 <tr><td style={celula} colSpan={4}>Nenhuma compra ainda.</td></tr>
               ) : null}
             </tbody>
-          </table>
+          </table></div>
         </>
       )}
     </Bloco>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -14,6 +14,11 @@ export default function ComprarPage() {
   const [email, setEmail] = useState("");
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
+  const [cancelado, setCancelado] = useState(false);
+
+  useEffect(() => {
+    setCancelado(new URLSearchParams(window.location.search).has("cancelado"));
+  }, []);
 
   async function comprar(e: React.FormEvent) {
     e.preventDefault();
@@ -62,6 +67,11 @@ export default function ComprarPage() {
             Pagamento único · Pix (QR code gerado pela Stripe)
           </div>
 
+          {cancelado ? (
+            <div style={{ border: "1.5px solid var(--goldenrod)", borderRadius: 12, padding: "12px 16px", marginBottom: 16, fontSize: 14, color: "var(--off-white)" }}>
+              Pagamento cancelado — nada foi cobrado. Quando quiser, é só tentar de novo.
+            </div>
+          ) : null}
           <form onSubmit={comprar} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             <label style={{ fontSize: 14, fontWeight: 600 }}>
               Seu e-mail (o acesso é liberado nele)

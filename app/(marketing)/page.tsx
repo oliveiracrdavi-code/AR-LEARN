@@ -18,6 +18,7 @@ export default function LandingPage() {
   return (
     <main className="fundo-grid" style={{ minHeight: "100vh" }}>
       <header
+        className="cabecalho-site"
         style={{
           display: "flex",
           alignItems: "center",

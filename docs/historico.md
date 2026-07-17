@@ -1198,3 +1198,17 @@ paleta travada (landing hero+player+Ebook+preço, /comprar, /aguardando,
 /entrar magic link, /admin), build passando, 4 screenshots. MCP Stripe
 desconectado na sessão (registrado). Bloqueios do Davi: credenciais
 Supabase/Stripe, habilitar Pix, storage do vídeo/Ebook.
+
+---
+
+## Sessão — Polimento frontend sem credenciais (Phase 3.1)
+
+Ordem do Davi (credenciais chegam depois): foco/microinterações/estados
+ativos no CSS, header empilhando no mobile, tabelas do admin com scroll
+horizontal, estado "pagamento cancelado" no /comprar, páginas error.tsx
+e not-found.tsx amigáveis na paleta, build ok. 14 screenshots (7 telas x
+desktop 1440 + mobile 390). docs/deploy-checklist.md criado (env vars +
+passos Supabase/Stripe/Storage p/ ativação sem retrabalho). Sandbox
+Stripe: MCP sem operações de escrita nesta sessão => página hospedada do
+checkout fica p/ o primeiro smoke test com chave (registrado no
+checklist). Nada de venda simulada no banco.
