@@ -50,7 +50,7 @@ export const EPISODIO = {
 export const SECOES: Secao[] = [
   {
     tipo: "intro",
-    frames: 600,
+    frames: 450, // 15s exatos (ajuste v2)
     narracao: "Bem-vindo ao «Altamente Rentável». Hoje vamos fazer a conta que ninguém faz antes de «investir» em imóvel.",
   },
   {
@@ -128,9 +128,9 @@ export const SECOES: Secao[] = [
   },
   {
     tipo: "cta",
-    frames: 847,
+    frames: 450, // 15s exatos + CTA goldenrod (ajuste v2)
     narracao: "O episódio completo aprofunda cada número. «Assista» e faça a conta antes do mercado fazer por você.",
   },
 ];
 
-export const TOTAL_FRAMES = SECOES.reduce((s, x) => s + x.frames, 0); // 12847
+export const TOTAL_FRAMES = SECOES.reduce((s, x) => s + x.frames, 0); // v2: 12300f = 410s = 6:50

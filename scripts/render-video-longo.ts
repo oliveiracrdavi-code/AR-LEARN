@@ -26,7 +26,7 @@ async function main() {
       console.log("still:", output);
     }
   } else {
-    const output = path.join(outDir, "ar_learn_171_16x9_final.mp4");
+    const output = path.join(outDir, "ar_learn_171_16x9_final_v2.mp4");
     await renderMedia({
       composition, serveUrl, codec: "h264", outputLocation: output, browserExecutable: CHROME,
       onProgress: ({ progress }) => { const p = Math.round(progress * 100); if (p % 5 === 0) process.stdout.write(`\r ${p}% `); },

@@ -81,6 +81,36 @@ const CardDadoLongo: React.FC<{ label: string; valorTexto: string; contexto: str
   );
 };
 
+// BOTÃO CTA do encerramento v2: pill goldenrod (amarelo do clipe) com
+// texto em black, entrada fade + scale SUTIL, permanece até o fim.
+const BotaoVerEpisodio: React.FC<{ atraso?: number }> = ({ atraso = 0 }) => {
+  const frame = useCurrentFrame();
+  const p = interpolate(frame, [atraso, atraso + 18], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  return (
+    <div
+      style={{
+        marginTop: 40,
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 16,
+        background: AMARELO,
+        color: "#020202",
+        fontFamily: FONTE,
+        fontWeight: 700,
+        fontSize: 34,
+        letterSpacing: 1,
+        padding: "26px 64px",
+        borderRadius: 999,
+        boxShadow: "0 18px 60px rgba(248,200,72,0.45)",
+        opacity: p,
+        transform: `scale(${0.92 + 0.08 * p})`,
+      }}
+    >
+      Ver Episódio Completo <span style={{ fontSize: 34 }}>&rarr;</span>
+    </div>
+  );
+};
+
 const linhasManchete = (s: Secao) =>
   (s.linhas ?? []).map((l) => ({ texto: l.texto, cor: l.cor === "amarelo" ? AMARELO : BRANCO, peso: l.peso, tamanho: l.tamanho }));
 
@@ -234,17 +264,28 @@ const CorpoSecao: React.FC<{ s: Secao; indice: number }> = ({ s, indice }) => {
         </>
       );
     case "cta":
+      // v2 (15s exatos): CTA goldenrod prioritário (entra em ~1s, visível
+      // ~14s), recap compacto dos 3 dados em chips, logo. Fade+scale sutil
+      // no botão (mesma linguagem 2D determinística).
       return (
         <AbsoluteFill style={{ alignItems: "center", justifyContent: "center" }}>
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
-            <div style={{ marginBottom: 24 }}><Kicker texto={EPISODIO.kicker} atraso={4} /></div>
-            <Kinetico atraso={10}>
-              <div style={{ fontFamily: FONTE, fontWeight: 700, fontSize: 78, color: BRANCO, maxWidth: 1300 }}>
+            <Kinetico atraso={4}>
+              <div style={{ fontFamily: FONTE, fontWeight: 700, fontSize: 70, color: BRANCO, maxWidth: 1300 }}>
                 Faça a conta <span style={{ color: AMARELO }}>antes</span> do mercado.
               </div>
             </Kinetico>
-            <div style={{ marginTop: 44 }}><Kinetico atraso={22}><LogoAR largura={150} /></Kinetico></div>
-            <div style={{ marginTop: 44 }}><BotaoCTA texto="ASSISTIR EPISÓDIO COMPLETO" atraso={32} /></div>
+            <div style={{ marginTop: 30, display: "flex", gap: 22 }}>
+              {["Entrada 35-40%", "Recorrência +20-25%", "m² R$ 45.000"].map((t, i) => (
+                <Kinetico key={i} atraso={12 + i * 4}>
+                  <div style={{ fontFamily: FONTE, fontWeight: 600, fontSize: 24, color: BRANCO, border: "2px solid rgba(255,255,255,0.22)", borderRadius: 999, padding: "10px 26px" }}>
+                    {t}
+                  </div>
+                </Kinetico>
+              ))}
+            </div>
+            <div style={{ marginTop: 36 }}><Kinetico atraso={18}><LogoAR largura={130} /></Kinetico></div>
+            <BotaoVerEpisodio atraso={26} />
           </div>
         </AbsoluteFill>
       );
