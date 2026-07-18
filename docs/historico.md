@@ -1212,3 +1212,23 @@ passos Supabase/Stripe/Storage p/ ativação sem retrabalho). Sandbox
 Stripe: MCP sem operações de escrita nesta sessão => página hospedada do
 checkout fica p/ o primeiro smoke test com chave (registrado no
 checklist). Nada de venda simulada no banco.
+
+---
+
+## Sessão — Ativação com credenciais reais (Supabase + validação do cérebro)
+
+Credenciais entregues pelo Davi (Supabase AR ACADEMY + ADMIN_TOKEN) foram
+pro .env.local (fora do git). Egress do sandbox bloqueia supabase.co/
+openrouter.ai/groq => banco ativado via MCP da Supabase (server-side):
+migrations schema+RLS+phase3 aplicadas, seed do ep.171 confirmado
+(learn publicado, R$ 127,48), advisors de segurança rodados e endereçados
+(migration 20260718090000_hardening_advisors.sql, aplicada no projeto e
+versionada). Chaves do .env.local conferidas contra as oficiais do
+projeto via MCP (URL/anon idênticas; service role com ref+role certos).
+Build Next.js ok com envs reais. OpenRouter/Groq validados via workflow
+teste-cerebro.yml (GitHub Secrets): 1º run provou a CHAVE funcionando
+mas falhou no piso de 7min — fixture de ~600 chars tornava o piso
+inatingível sem encher (proibido); fixture expandido p/ ~6.100 chars e
+re-rodado. Pendências do Davi: YouTube API key (amanhã; só p/ eps 172+),
+deploy em domínio público (env vars do checklist), Stripe produção+Pix,
+upload do vídeo/Ebook no Storage.

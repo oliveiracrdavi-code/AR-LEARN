@@ -76,3 +76,36 @@
   (Settings -> Payment methods), (3) preencher STRIPE_SECRET_KEY e
   STRIPE_WEBHOOK_SECRET no provedor. O código já está pronto para ambos
   os cenários (Pix + cartão fallback).
+
+## Adendo — Ativação com credenciais reais (2026-07-18)
+
+- **Supabase**: projeto **AR ACADEMY** (`gmwtkcjpjmcwsnjrgeen`) ativo.
+  Migrations aplicadas via MCP na ordem: schema Fase 0 → RLS Fase 0 →
+  phase3_academy → hardening_advisors (nova, versionada no repo). Seed
+  executado e confirmado: learn `a-conta-que-ninguem-faz-ep-171`
+  publicado a R$ 127,48 (`ebook_url` ainda nulo — aguarda Storage).
+- **Advisors de segurança**: rodados. Corrigidos: search_path mutável e
+  execução RPC pública das funções de trigger. Intencionais e
+  documentados: view teaser `learns_publico` (SECURITY DEFINER, colunas
+  leves) e `episodios_processados` sem policy (service-role only).
+- **Chaves conferidas**: `.env.local` bate com as oficiais do projeto
+  (URL e anon idênticas via MCP; service role decodificada = ref
+  `gmwtkcjpjmcwsnjrgeen`, role `service_role`). Build do Next.js passou
+  com as envs reais.
+- **Limitação do sandbox (honestidade)**: o egress desta sessão bloqueia
+  `*.supabase.co` por política de proxy, então o request HTTP do site
+  rodando AQUI não alcança o banco. A prova de conexão é: credenciais
+  idênticas às oficiais + banco migrado/seedado/consultado via MCP. O
+  primeiro deploy (ou o smoke test do checklist) exercita o caminho
+  HTTP de verdade.
+- **OpenRouter/Groq**: validados por chamada real no GitHub Actions
+  (workflow teste-cerebro.yml, Secrets do repo). Run 29648554670 provou
+  a chave OpenRouter respondendo (3 chamadas ok) mas falhou no piso de
+  7 min: fixture de ~600 chars tornava o piso honestamente inatingível
+  ("nunca encher"). Fixture expandido para ~6.100 chars e workflow
+  re-disparado.
+- **YouTube API**: pendente — Davi entrega amanhã. Não bloqueia nada do
+  SaaS atual: só é necessária para ingerir episódios 172+ na esteira.
+  Ponto de retomada: preencher `YOUTUBE_API_KEY` e rodar a ingestão.
+- **Stripe**: inalterado por ordem — sandbox "Ziily AIs" para telas;
+  produção + Pix + webhook ficam com o Davi (checklist, seção 2).
