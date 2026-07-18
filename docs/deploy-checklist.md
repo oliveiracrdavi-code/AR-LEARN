@@ -4,10 +4,15 @@ Ativação final quando as credenciais chegarem: preencher env vars,
 rodar SQL, subir arquivos. Zero retrabalho de código.
 
 ## 1. Supabase (dashboard supabase.com)
-1. Criar o projeto (região São Paulo).
-2. **SQL**: rodar na ordem — `supabase/migrations/20260702120000_schema.sql`
+1. ✅ FEITO (2026-07-18): projeto **AR ACADEMY** (`gmwtkcjpjmcwsnjrgeen`)
+   ativo e saudável.
+2. ✅ FEITO (2026-07-18): SQL aplicado via MCP na ordem —
+   `supabase/migrations/20260702120000_schema.sql`
    → `20260702120100_rls.sql` → `20260717120000_phase3_academy.sql` →
-   `supabase/seed_phase3.sql`.
+   `20260718090000_hardening_advisors.sql` → `supabase/seed_phase3.sql`.
+   Seed confirmado: learn `a-conta-que-ninguem-faz-ep-171` publicado,
+   R$ 127,48. Advisors de segurança rodados e endereçados (ver migration
+   de hardening).
 3. **Auth**: habilitar Email (magic link) em Authentication → Providers.
 4. **Storage**: criar bucket `learns` (privado); subir
    `ar_learn_171_16x9_final_v2.mp4` (master 1080p — regenerar com
@@ -27,16 +32,22 @@ rodar SQL, subir arquivos. Zero retrabalho de código.
    `checkout.session.async_payment_failed`. Copiar o signing secret.
 
 ## 3. Env vars (provedor de deploy — Cloudflare Pages / Vercel)
-| Variável | Valor | Origem |
+Status 2026-07-18: Supabase (URL/anon/service role) + `ADMIN_TOKEN` já
+entregues e validados localmente (`.env.local`, fora do git — build ok).
+Falta preencher no PROVEDOR na hora do deploy (copiar de `.env.local`).
+
+| Variável | Valor | Origem / Status |
 |---|---|---|
-| `NEXT_PUBLIC_SUPABASE_URL` | URL do projeto | Supabase → Settings → API |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | anon key | idem |
-| `SUPABASE_SERVICE_ROLE_KEY` | service role | idem (NUNCA no client) |
-| `STRIPE_SECRET_KEY` | sk_live_... | Stripe → Developers → API keys |
-| `STRIPE_WEBHOOK_SECRET` | whsec_... | Stripe → Webhooks (passo 2.3) |
-| `NEXT_PUBLIC_SITE_URL` | https://<dominio> | — |
-| `NEXT_PUBLIC_EP171_VIDEO_URL` | URL do vídeo no Storage | passo 1.4 |
-| `ADMIN_TOKEN` | segredo forte | gerar (ex.: `openssl rand -hex 24`) |
+| `NEXT_PUBLIC_SUPABASE_URL` | URL do projeto | ✅ entregue (AR ACADEMY) |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | anon key | ✅ entregue |
+| `SUPABASE_SERVICE_ROLE_KEY` | service role | ✅ entregue (NUNCA no client) |
+| `STRIPE_SECRET_KEY` | sk_live_... | pendente (sandbox por enquanto) |
+| `STRIPE_WEBHOOK_SECRET` | whsec_... | pendente (passo 2.3) |
+| `NEXT_PUBLIC_SITE_URL` | https://<dominio> | pendente (domínio público) |
+| `NEXT_PUBLIC_EP171_VIDEO_URL` | URL do vídeo | pendente (YouTube/Storage) |
+| `ADMIN_TOKEN` | segredo forte | ✅ entregue |
+| `YOUTUBE_API_KEY` (esteira) | API key | pendente — Davi entrega amanhã; só necessária p/ ingerir eps 172+ |
+| `OPENROUTER_API_KEY` / `GROQ_API_KEY` (esteira/CI) | chaves | ✅ nos GitHub Secrets (validadas via workflow teste-cerebro) |
 
 ## 4. Smoke test pós-deploy
 1. Landing carrega com player (URL do Storage).
