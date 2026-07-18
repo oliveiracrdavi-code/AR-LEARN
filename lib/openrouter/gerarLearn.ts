@@ -12,7 +12,10 @@ import { DURACAO_MINIMA_VIDEO_SEG, TAXA_CARACTERES_POR_SEGUNDO_ANTONIO } from ".
 // saída); deepseek/deepseek-chat é a alternativa também barata citada
 // no manual.
 const MODELO_BARATO = process.env.OPENROUTER_MODEL || "google/gemini-2.5-flash";
-const MAX_TENTATIVAS = 3;
+// 4, não 3: as tentativas são compartilhadas entre dois tipos de correção
+// (piso de duração e JSON malformado) — em CI o caminho feliz já consumiu
+// 3 tentativas só pra bater o piso, sem sobra pra corrigir um JSON.
+const MAX_TENTATIVAS = 4;
 
 // Sem max_tokens explícito, a resposta pode ser truncada a meio do
 // JSON quando o roteiro expandido (retentativa de duração) fica mais
@@ -115,8 +118,9 @@ export async function gerarLearnDoEpisodio(
   let ultimoErro = "";
 
   for (let tentativa = 1; tentativa <= MAX_TENTATIVAS; tentativa++) {
+    let resposta = "";
     try {
-      const resposta = await chamarOpenRouter(mensagens);
+      resposta = await chamarOpenRouter(mensagens);
       const parsed = JSON.parse(resposta);
       const validado = learnContratoSchema.safeParse(parsed);
 
@@ -160,9 +164,20 @@ export async function gerarLearnDoEpisodio(
     } catch (erro) {
       if (erro instanceof SyntaxError) {
         ultimoErro = `JSON malformado: ${erro.message}`;
+        // Sem a resposta quebrada no histórico, "corrija" vira "gere de
+        // novo do zero" — e o modelo tende a repetir o MESMO deslize
+        // (visto em CI: tentativas seguidas malformadas na mesma região).
+        // Com o texto anterior + a vizinhança exata do erro, ele conserta
+        // em vez de re-errar.
+        const pos = Number(/position (\d+)/.exec(erro.message)?.[1] ?? -1);
+        const trecho =
+          pos >= 0 ? resposta.slice(Math.max(0, pos - 120), pos + 120) : "";
+        mensagens.push({ role: "assistant", content: resposta });
         mensagens.push({
           role: "user",
-          content: `A resposta anterior não era um JSON válido (${ultimoErro}). Devolva só o JSON, sem texto ao redor.`,
+          content: `A resposta anterior não era um JSON válido (${ultimoErro}).${
+            trecho ? ` O problema está neste trecho:\n...${trecho}...\n` : " "
+          }Devolva o JSON COMPLETO corrigido, sem cercas de markdown e sem texto ao redor.`,
         });
         continue;
       }
