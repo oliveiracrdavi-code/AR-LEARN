@@ -109,3 +109,33 @@
   Ponto de retomada: preencher `YOUTUBE_API_KEY` e rodar a ingestão.
 - **Stripe**: inalterado por ordem — sandbox "Ziily AIs" para telas;
   produção + Pix + webhook ficam com o Davi (checklist, seção 2).
+
+## Adendo 2 — Robustez da esteira ganha na validação (2026-07-18, tarde)
+
+Os re-disparos do workflow de validação expuseram 3 fragilidades reais da
+esteira, todas corrigidas e versionadas:
+
+1. **Fixture do teste do cérebro** era ~600 chars — piso de 7 min
+   matematicamente inatingível sem encher (proibido). Expandido para
+   ~6.100 chars de conteúdo real sintético.
+2. **JSON malformado do modelo barato** (vírgula/colchete errado em
+   documentos de ~20k chars, recorrente): (a) bug corrigido — o retry de
+   SyntaxError pedia correção sem incluir a resposta quebrada no
+   histórico; (b) conserto DETERMINÍSTICO local via `jsonrepair` antes de
+   qualquer retry via LLM, com o zod `.strict()` seguindo como gate;
+   (c) MAX_TENTATIVAS 3→4 (tentativas compartilhadas com o piso).
+3. **kroki.io instável**: o conversor mermaid deles roda Chromium
+   server-side e sob carga devolve 400 "Failed to launch the browser
+   process" (EAGAIN do lado DELES). Agora esse 400 específico (e
+   5xx/timeout) é retentado 3x com backoff. Obs.: `KROKI_URL` já permite
+   apontar pra outra instância se a pública seguir ruim.
+
+Status final da validação em CI (workflow teste-cerebro.yml):
+- **Groq: VERDE** — chave válida, whisper-large-v3(-turbo) disponíveis.
+- **OpenRouter/cérebro: VERDE** — múltiplas gerações completas validadas
+  contra o contrato (roteiros de 7-8 min acima do piso).
+- **Workflow completo: teve run 100% verde** (run 29648678696, 14:54).
+  Re-execuções posteriores falharam APENAS no passo Kroki por
+  indisponibilidade sustentada da instância pública kroki.io durante a
+  tarde (5 falhas seguidas do lado deles, com retry) — nada a corrigir
+  no nosso lado; o passo volta a passar quando o serviço deles estabilizar.
