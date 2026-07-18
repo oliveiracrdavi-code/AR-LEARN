@@ -1,3 +1,4 @@
+import { jsonrepair } from "jsonrepair";
 import { learnContratoSchema, type LearnContrato } from "./schema";
 import { SYSTEM_PROMPT_CEREBRO } from "./systemPrompt";
 import { logComTimestamp } from "../util/log";
@@ -121,7 +122,25 @@ export async function gerarLearnDoEpisodio(
     let resposta = "";
     try {
       resposta = await chamarOpenRouter(mensagens);
-      const parsed = JSON.parse(resposta);
+      // O modelo barato erra vírgula/colchete com frequência em JSONs de
+      // ~20k chars (visto em CI: 4 tentativas seguidas malformadas, e a
+      // "reimpressão corrigida" pelo próprio LLM re-erra em outro lugar).
+      // Conserto DETERMINÍSTICO local via jsonrepair; a validação .strict()
+      // do zod logo abaixo continua sendo o gate de correção — se o
+      // conserto corromper a estrutura, cai no caminho de erro de schema.
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(resposta);
+      } catch {
+        try {
+          parsed = JSON.parse(jsonrepair(resposta));
+          logComTimestamp("JSON malformado consertado localmente (jsonrepair).");
+        } catch (erroReparo) {
+          throw new SyntaxError(
+            erroReparo instanceof Error ? erroReparo.message : String(erroReparo)
+          );
+        }
+      }
       const validado = learnContratoSchema.safeParse(parsed);
 
       if (validado.success) {
