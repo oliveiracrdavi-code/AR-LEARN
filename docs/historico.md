@@ -1294,3 +1294,20 @@ migrou de Motion/JS pra CSS puro após Lighthouse mobile acusar LCP 4,3s
 re-tentada 2x nesta rodada: 403 persistente (token do conector sem
 permissão de criar projeto) — caminho documentado no deploy-final-log.
 Logs: landing-institucional-log.md; zips de screenshots reentregues.
+
+---
+
+## Sessão — Credenciais implementadas (admin form+cookie, teste real, bloco Vercel)
+
+Conexão Supabase re-validada com consulta real: learns devolve o #171
+publicado/R$ 127,48/thumbnail ok no AR ACADEMY. Gate do /admin refeito:
+formulário + cookie httpOnly de 8h, server-side only; o acesso por
+?token= foi REMOVIDO — o teste automatizado (scripts/testar-admin-gate.ts,
+7 cenários, todos verdes) flagrou que o Next ecoa searchParams no payload
+RSC, ou seja, token na URL aparecia no HTML. Botão de encerrar sessão;
+alternarHero valida pelo cookie. Bloco de env vars pra Vercel gerado em
+.env.vercel (GITIGNORED — repo é público, segredo nunca no código) e
+entregue ao Davi pelo chat: 3 do Supabase confirmadas, ADMIN_TOKEN,
+OpenRouter/Groq replicadas, placeholders de SITE_URL (URL padrão da
+Vercel), EP171_VIDEO_URL (pós-YouTube) e Stripe sandbox (valores nunca
+passaram pela sessão — copiar do dashboard). Checklist atualizado.
