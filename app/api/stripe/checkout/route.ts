@@ -28,11 +28,15 @@ export async function POST(req: NextRequest) {
     }
 
     const stripe = getStripe();
-    // Pix primeiro; cartão como fallback temporário (documentado no log)
-    // enquanto o Pix não estiver habilitado no dashboard da conta.
+    // Métodos de pagamento DINÂMICOS (sem payment_method_types): a Stripe
+    // usa o que estiver habilitado no dashboard da conta. Fixar
+    // ["pix","card"] derrubava a criação da sessão inteira em conta sem
+    // Pix ativo (confirmado via MCP: o sandbox atual é BRL só com card) —
+    // não existe "fallback" dentro desse parâmetro. Assim, hoje o sandbox
+    // oferece cartão; quando o Davi ativar Pix na conta de produção, o
+    // Pix aparece primeiro pra BRL sem tocar em código — só trocar a chave.
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
-      payment_method_types: ["pix", "card"],
       customer_email: email,
       line_items: [
         {
@@ -58,7 +62,9 @@ export async function POST(req: NextRequest) {
       usuario_id: null,
       learn_id: learn.id,
       valor: learn.preco_centavos / 100,
-      metodo_pagamento: "pix",
+      // metodo_pagamento fica nulo no 'pendente' — o método real (pix ou
+      // cartão, agora dinâmico) é gravado pelo webhook na confirmação.
+      metodo_pagamento: null,
       provedor: "stripe",
       provedor_transacao_id: session.id,
       stripe_checkout_session_id: session.id,

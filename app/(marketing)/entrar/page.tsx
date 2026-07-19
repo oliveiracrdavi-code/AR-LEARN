@@ -15,7 +15,12 @@ export default function EntrarPage() {
     setMsg(null);
     try {
       const supabase = createBrowserSupabaseClient();
-      const { error } = await supabase.auth.signInWithOtp({ email });
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        // O link do e-mail volta direto pra área de membros; o client
+        // detecta o token na URL e grava a sessão.
+        options: { emailRedirectTo: `${window.location.origin}/dashboard` },
+      });
       if (error) throw error;
       setMsg("Link de acesso enviado! Confira seu e-mail.");
     } catch (err) {
