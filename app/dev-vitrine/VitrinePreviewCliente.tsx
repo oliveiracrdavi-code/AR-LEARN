@@ -8,12 +8,17 @@ import { HeroDestaque } from "@/componentes/vitrine/HeroDestaque";
 import { VitrineRow } from "@/componentes/vitrine/VitrineRow";
 import type { CardLearn } from "@/lib/vitrine/fileiras";
 
+// Thumbnail real do ep. 171 (backfill WyktmQKpL94); fictícios ficam no
+// fallback visual da marca — demonstra os dois estados da capa.
+const THUMB_171 = "https://i.ytimg.com/vi/WyktmQKpL94/maxresdefault.jpg";
+
 function c(p: Partial<CardLearn> & { slug: string; titulo: string }): CardLearn {
   return {
     id: p.slug,
     resumo: null,
     duracao_segundos: 420,
     publicado_at: new Date().toISOString(),
+    thumbnail_url: p.slug.includes("ep-171") ? THUMB_171 : null,
     comprado: false,
     novo: false,
     emAlta: false,

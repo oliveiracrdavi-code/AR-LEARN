@@ -21,6 +21,7 @@ export type CardLearn = {
   resumo: string | null;
   duracao_segundos: number | null;
   publicado_at: string | null;
+  thumbnail_url: string | null;
   comprado: boolean;
   novo: boolean;
   emAlta: boolean;
@@ -52,7 +53,7 @@ export async function montarVitrine(): Promise<Vitrine> {
     await Promise.all([
       supabase
         .from("learns_publico")
-        .select("id, modulo_id, slug, titulo, resumo, ordem, duracao_segundos, publicado_at, fixado_no_hero")
+        .select("id, modulo_id, slug, titulo, resumo, ordem, duracao_segundos, publicado_at, fixado_no_hero, thumbnail_url")
         .order("ordem"),
       supabase.from("learns").select("id"),
       supabase.from("progresso_learns").select("learn_id, segundos_assistidos, duracao_segundos, concluido, atualizado_at"),
@@ -89,6 +90,7 @@ export async function montarVitrine(): Promise<Vitrine> {
       resumo: l.resumo,
       duracao_segundos: l.duracao_segundos,
       publicado_at: l.publicado_at,
+      thumbnail_url: l.thumbnail_url,
       comprado: idsComprados.has(l.id),
       novo: ehNovo(l.publicado_at),
       emAlta: (altaPorLearn.get(l.id) ?? 0) >= 3,

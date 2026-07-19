@@ -4,13 +4,47 @@
 // bloqueado (CTA de compra no hover). Hover rico (padrão do PDF de
 // referência 21st.dev/React Bits adaptado à paleta AR): scale sutil,
 // spotlight goldenrod que segue o cursor, border-glow, metadados extras.
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { motion } from "motion/react";
 import type { CardLearn } from "@/lib/vitrine/fileiras";
 
 function minutos(seg: number | null): string | null {
   return seg ? `${Math.round(seg / 60)} min` : null;
+}
+
+// Capa = thumbnail REAL do episódio no YouTube, com overlay escuro na
+// base (legibilidade) e cascata de fallback: maxres pode não existir
+// (depende do vídeo), então onError troca maxresdefault -> hqdefault;
+// falhou tudo (episódio antigo, API fora), cai no visual da marca
+// (grid + monograma goldenrod) — nunca layout quebrado/imagem vazia.
+function CapaThumbnail({ card }: { card: CardLearn }) {
+  const [src, setSrc] = useState(card.thumbnail_url);
+
+  function aoFalhar() {
+    if (src?.includes("maxresdefault")) {
+      setSrc(src.replace("maxresdefault", "hqdefault"));
+    } else {
+      setSrc(null); // fallback da marca
+    }
+  }
+
+  if (!src) return <span className="vitrine-card-monograma">AR</span>;
+  return (
+    <>
+      {/* eslint-disable-next-line @next/next/no-img-element -- domínio
+          externo (i.ytimg.com) com cascata onError; otimização do
+          next/image não se aplica aqui */}
+      <img
+        src={src}
+        alt=""
+        loading="lazy"
+        onError={aoFalhar}
+        className="vitrine-card-thumb"
+      />
+      <div className="vitrine-card-overlay" aria-hidden />
+    </>
+  );
 }
 
 export function LearnCard({ card }: { card: CardLearn }) {
@@ -42,7 +76,7 @@ export function LearnCard({ card }: { card: CardLearn }) {
         aria-label={`${card.titulo}${card.comprado ? "" : " (comprar acesso)"}`}
       >
         <div className="vitrine-card-capa">
-          <span className="vitrine-card-monograma">AR</span>
+          <CapaThumbnail card={card} />
           {card.novo ? <span className="vitrine-badge novo">NOVO</span> : null}
           {card.emAlta ? <span className="vitrine-badge alta">EM ALTA</span> : null}
           {!card.comprado ? (

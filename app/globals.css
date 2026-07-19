@@ -302,6 +302,19 @@ input:focus {
   align-items: center;
   justify-content: center;
 }
+.vitrine-card-thumb {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.vitrine-card-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.08) 45%, rgba(0, 0, 0, 0.62) 100%);
+  pointer-events: none;
+}
 .vitrine-card-monograma {
   font-weight: 800;
   font-size: 42px;
@@ -502,6 +515,77 @@ input:focus {
 @keyframes hero-deriva-b {
   from { transform: translate3d(0, 0, 0) scale(1); }
   to { transform: translate3d(3vw, -2vw, 0) scale(1.08); }
+}
+
+/* Entrada acima-da-dobra em CSS PURO: o LCP (manchete) pinta no primeiro
+   frame e anima sem esperar hidratação de JS — Lighthouse mobile acusou
+   LCP 4,3s com a entrada via Motion (opacity 0 até o bundle chegar).
+   Motion segue nos reveals abaixo da dobra e micro-interações. */
+@keyframes entrada-suave {
+  from { opacity: 0; transform: translateY(26px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.entrada {
+  animation: entrada-suave 0.6s ease-out both;
+}
+.entrada.d1 { animation-delay: 0.1s; }
+.entrada.d2 { animation-delay: 0.2s; }
+.entrada.d3 { animation-delay: 0.32s; }
+.entrada.d4 { animation-delay: 0.45s; }
+@media (prefers-reduced-motion: reduce) {
+  .entrada { animation: none; }
+}
+
+/* Glassmorphism 2.0 — translúcido sutil, só onde comunica hierarquia
+   (header fixo + caixas de destaque), nunca a página inteira. */
+.cabecalho-glass {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 6vw;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid rgba(255, 203, 0, 0.14);
+}
+.caixa-glass {
+  background: rgba(20, 20, 20, 0.6);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+/* Bento grid — tamanho do tile comunica hierarquia (vídeo-aula maior). */
+.bento {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 18px;
+}
+.bento-tile.grande {
+  grid-column: span 2;
+  grid-row: span 2;
+}
+.bento-tile:not(.grande):not(.largo) {
+  grid-column: span 2;
+}
+.bento-tile.largo {
+  grid-column: span 4;
+}
+.bento-tile > * {
+  height: 100%;
+}
+@media (max-width: 860px) {
+  .bento {
+    grid-template-columns: 1fr;
+  }
+  .bento-tile.grande,
+  .bento-tile:not(.grande):not(.largo),
+  .bento-tile.largo {
+    grid-column: span 1;
+    grid-row: auto;
+  }
 }
 
 .moldura-video {

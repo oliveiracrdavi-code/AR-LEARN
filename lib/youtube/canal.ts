@@ -20,11 +20,24 @@ export interface VideoDoCanal {
   videoId: string;
   titulo: string;
   publicadoEm: string;
+  thumbnailUrl: string | null;
+}
+
+type Thumbnails = Record<string, { url?: string } | undefined>;
+
+// Maior resolução disponível: maxres (1280x720) nem sempre existe, então
+// a cascata segue a ordem oficial da Data API até o default.
+export function melhorThumbnail(thumbnails: Thumbnails | undefined): string | null {
+  for (const nivel of ["maxres", "standard", "high", "medium", "default"]) {
+    const url = thumbnails?.[nivel]?.url;
+    if (url) return url;
+  }
+  return null;
 }
 
 interface PlaylistItemsResponse {
   items?: {
-    snippet?: { title?: string };
+    snippet?: { title?: string; thumbnails?: Thumbnails };
     contentDetails?: { videoId?: string; videoPublishedAt?: string };
   }[];
   nextPageToken?: string;
@@ -51,7 +64,12 @@ export async function listarVideosDoCanal(
       const titulo = item.snippet?.title;
       const publicadoEm = item.contentDetails?.videoPublishedAt;
       if (videoId && titulo && publicadoEm) {
-        videos.push({ videoId, titulo, publicadoEm });
+        videos.push({
+          videoId,
+          titulo,
+          publicadoEm,
+          thumbnailUrl: melhorThumbnail(item.snippet?.thumbnails),
+        });
       }
     }
 

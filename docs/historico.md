@@ -1274,3 +1274,23 @@ permissão de criar projeto (403) => deploy segue bloqueado; recomendação:
 importar o repo na vercel.com (auto-deploy por push). Logs novos:
 vitrine-arquitetura-log.md, design-turbinado-log.md; zips de screenshots
 entregues no chat. Build verde.
+
+---
+
+## Sessão — Landing institucional + thumbnails do YouTube + performance
+
+Correção crítica executada: a landing pública agora vende a ACADEMY
+(hero institucional, o que é, benefícios, "o que está incluso" em BENTO
+grid, prova social pelo podcast sem número inventado, preview real da
+vitrine, CTA "Começar agora"); nada do #171 foi descartado — manchete/
+player/dados moram na vitrine e em /learns/[slug]. Thumbnails reais:
+coluna learns.thumbnail_url (migration aplicada + versionada), captura
+snippet.thumbnails com cascata na ingestão (melhorThumbnail), backfill
+do WyktmQKpL94 via URL determinística do CDN, card com overlay + cascata
+onError + fallback da marca. Glassmorphism moderado (header sticky blur
++ caixas de destaque). Performance como feature: entrada acima-da-dobra
+migrou de Motion/JS pra CSS puro após Lighthouse mobile acusar LCP 4,3s
+=> score 0,72 -> 0,96 (FCP 0,8s, LCP 2,7s, TBT 50ms, CLS 0). Vercel
+re-tentada 2x nesta rodada: 403 persistente (token do conector sem
+permissão de criar projeto) — caminho documentado no deploy-final-log.
+Logs: landing-institucional-log.md; zips de screenshots reentregues.
