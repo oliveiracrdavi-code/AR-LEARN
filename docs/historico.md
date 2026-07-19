@@ -1232,3 +1232,22 @@ inatingível sem encher (proibido); fixture expandido p/ ~6.100 chars e
 re-rodado. Pendências do Davi: YouTube API key (amanhã; só p/ eps 172+),
 deploy em domínio público (env vars do checklist), Stripe produção+Pix,
 upload do vídeo/Ebook no Storage.
+
+---
+
+## Sessão — Finalização frontend (Auth real + Storage + Stripe; Vercel bloqueada)
+
+Auth de verdade: magic link com redirect pro /dashboard, singleton do
+client, dashboard listando os Learns do comprador via RLS (a policy é o
+gate), /learns/[slug] com vídeo/Ebook/mapa e estados sem-acesso. RLS
+provado no banco real com transação limpa (comprador 1 learn; sem compra
+0; anon 0 + teaser 1; nada persistiu). Storage: bucket privado `learns`,
+lib+CLI subirAtivosDoLearn (esteira do YouTube pronta pra segunda) e
+/api/learns/[slug]/ativos assinando URLs (1h) após revalidar a compra.
+Stripe via MCP: sandbox Ziily BRL test-mode só card => consertado bug
+real (payment_method_types fixo derrubaria a sessão sem Pix ativo);
+agora métodos dinâmicos do dashboard, produção = trocar chave. Vercel:
+conector DESCONECTADO no ambiente + egress bloqueado => deploy ficou
+bloqueado (Davi reconecta o conector OU importa o repo na vercel.com;
+passos exatos em docs/deploy-final-log.md). Build ok, screenshots dos
+novos estados gerados.

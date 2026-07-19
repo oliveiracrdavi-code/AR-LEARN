@@ -13,13 +13,18 @@ rodar SQL, subir arquivos. Zero retrabalho de código.
    Seed confirmado: learn `a-conta-que-ninguem-faz-ep-171` publicado,
    R$ 127,48. Advisors de segurança rodados e endereçados (ver migration
    de hardening).
-3. **Auth**: habilitar Email (magic link) em Authentication → Providers.
-4. **Storage**: criar bucket `learns` (privado); subir
-   `ar_learn_171_16x9_final_v2.mp4` (master 1080p — regenerar com
-   `npx tsx scripts/render-video-longo.ts video` se necessário), o Ebook e
-   o mapa mental; gerar URLs assinadas/públicas conforme a decisão de
-   entrega e preencher `learns.ebook_url` / `video_url` no SQL editor.
-5. Copiar as chaves (Settings → API).
+3. **Auth**: conferir Email (magic link) habilitado em Authentication →
+   Providers. Após o deploy: Authentication → URL Configuration → Site
+   URL = https://<dominio> e adicionar `https://<dominio>/dashboard` nos
+   Redirect URLs (senão o magic link volta pro localhost). SMTP embutido
+   é rate-limitado — pra escala, SMTP próprio depois.
+4. ✅ FEITO (2026-07-18): bucket privado `learns` criado via MCP. Upload
+   dos ativos virou automação: `npm run learn:subir-ativos -- <slug>
+   --video x.mp4 --ebook y.pdf --mapa z.png` sobe e preenche as colunas
+   (o site serve por URL assinada). A esteira do YouTube chama isso
+   sozinha; pro workflow funcionar, adicionar `NEXT_PUBLIC_SUPABASE_URL`
+   e `SUPABASE_SERVICE_ROLE_KEY` nos GitHub Secrets do repo.
+5. ✅ Chaves copiadas e validadas (2026-07-18).
 
 ## 2. Stripe (dashboard.stripe.com)
 1. Usar a **conta de produção** (o MCP desta sessão aponta pro sandbox
