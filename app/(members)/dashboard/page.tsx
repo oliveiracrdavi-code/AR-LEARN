@@ -5,34 +5,26 @@ import Link from "next/link";
 import Image from "next/image";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 import { useSessao } from "@/lib/supabase/useSessao";
+import { montarVitrine, type Vitrine } from "@/lib/vitrine/fileiras";
+import { HeroDestaque, HeroSkeleton } from "@/componentes/vitrine/HeroDestaque";
+import { VitrineRow } from "@/componentes/vitrine/VitrineRow";
 
-type LearnResumo = {
-  slug: string;
-  titulo: string;
-  resumo: string | null;
-  duracao_segundos: number | null;
-  publicado_at: string | null;
-};
-
-// DASHBOARD — área do comprador. A consulta usa a anon key com a sessão
-// do usuário: o RLS (learns_select_comprador) devolve SÓ os Learns
-// publicados que ele comprou. Zero filtro no client — a policy é o gate.
+// DASHBOARD — vitrine estilo Netflix: hero em destaque + fileiras
+// horizontais nomeadas por RESULTADO. A segurança continua a mesma da
+// versão anterior: tudo que é conteúdo comprado vem da tabela `learns`
+// sob RLS; o catálogo bloqueado vem do teaser público (colunas leves).
+// Preparado pra N Learns — com 1 publicado hoje, hero + fileiras já
+// funcionam e o catálogo preenche sozinho quando os eps 172+ chegarem.
 export default function DashboardPage() {
   const { sessao, carregando } = useSessao();
-  const [learns, setLearns] = useState<LearnResumo[] | null>(null);
+  const [vitrine, setVitrine] = useState<Vitrine | null>(null);
   const [erro, setErro] = useState<string | null>(null);
 
   useEffect(() => {
     if (!sessao) return;
-    const supabase = createBrowserSupabaseClient();
-    supabase
-      .from("learns")
-      .select("slug, titulo, resumo, duracao_segundos, publicado_at")
-      .order("ordem", { ascending: true })
-      .then(({ data, error }) => {
-        if (error) setErro(error.message);
-        else setLearns(data ?? []);
-      });
+    montarVitrine()
+      .then(setVitrine)
+      .catch((e) => setErro(e instanceof Error ? e.message : "erro inesperado"));
   }, [sessao]);
 
   async function sair() {
@@ -67,7 +59,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <main className="fundo-grid" style={{ minHeight: "100vh", padding: "32px 6vw 64px" }}>
+    <main style={{ minHeight: "100vh", padding: "32px 6vw 80px", background: "var(--black)" }}>
       <header className="cabecalho-site" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <Image src="/logo-ar.jpg" alt="Altamente Rentável Academy" width={44} height={44} style={{ borderRadius: 10 }} />
@@ -81,22 +73,26 @@ export default function DashboardPage() {
         </div>
       </header>
 
-      <p className="kicker" style={{ marginTop: 40 }}>Seus Learns</p>
-      <h1 style={{ fontWeight: 800, fontSize: "clamp(26px, 4vw, 38px)", marginTop: 8 }}>
-        Bem-vindo de volta<span style={{ color: "var(--goldenrod)" }}>.</span>
-      </h1>
-
       {erro ? (
-        <div className="cartao" style={{ marginTop: 24, borderColor: "rgba(255,203,0,0.5)" }}>
-          <p style={{ fontSize: 15 }}>Não foi possível carregar seus Learns agora ({erro}).</p>
+        <div className="cartao" style={{ marginTop: 28, borderColor: "rgba(255,203,0,0.5)" }}>
+          <p style={{ fontSize: 15 }}>Não foi possível carregar a vitrine agora ({erro}).</p>
         </div>
       ) : null}
 
-      {learns && learns.length === 0 ? (
-        <div className="cartao" style={{ marginTop: 24, maxWidth: 640 }}>
+      {!vitrine && !erro ? (
+        <>
+          <HeroSkeleton />
+          <VitrineRow titulo="Seus Learns" carregando />
+        </>
+      ) : null}
+
+      {vitrine?.hero ? <HeroDestaque card={vitrine.hero} /> : null}
+
+      {vitrine && !vitrine.hero ? (
+        <div className="cartao" style={{ marginTop: 28, maxWidth: 640 }}>
           <p style={{ fontSize: 15 }}>
-            Nenhum Learn liberado neste e-mail ainda. Se você acabou de pagar
-            via Pix, a liberação leva alguns instantes após a confirmação.
+            O catálogo está sendo preparado — os primeiros Learns aparecem
+            aqui em breve.
           </p>
           <Link href="/comprar" className="botao-goldenrod" style={{ marginTop: 16 }}>
             Garantir meu acesso →
@@ -104,23 +100,9 @@ export default function DashboardPage() {
         </div>
       ) : null}
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 20, marginTop: 24 }}>
-        {(learns ?? []).map((l) => (
-          <Link key={l.slug} href={`/learns/${l.slug}`} className="cartao" style={{ display: "block" }}>
-            <p className="kicker" style={{ fontSize: 11 }}>Learn</p>
-            <h2 style={{ fontWeight: 700, fontSize: 20, marginTop: 8 }}>{l.titulo}</h2>
-            {l.resumo ? (
-              <p style={{ color: "var(--dusty-grey)", fontSize: 14, marginTop: 8 }}>{l.resumo}</p>
-            ) : null}
-            <p style={{ color: "var(--goldenrod)", fontSize: 13, fontWeight: 600, marginTop: 14 }}>
-              Assistir agora →
-              {l.duracao_segundos
-                ? `  ·  ${Math.round(l.duracao_segundos / 60)} min`
-                : ""}
-            </p>
-          </Link>
-        ))}
-      </div>
+      {(vitrine?.fileiras ?? []).map((f) => (
+        <VitrineRow key={f.chave} titulo={f.titulo} cards={f.cards} />
+      ))}
     </main>
   );
 }

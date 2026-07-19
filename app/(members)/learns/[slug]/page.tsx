@@ -1,11 +1,14 @@
 "use client";
 
-import { use, useEffect, useState } from "react";
+import { use, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 import { useSessao } from "@/lib/supabase/useSessao";
+import { montarRelacionados, type CardLearn } from "@/lib/vitrine/fileiras";
+import { VitrineRow } from "@/componentes/vitrine/VitrineRow";
 
 type Learn = {
+  id: string;
   slug: string;
   titulo: string;
   resumo: string | null;
@@ -22,6 +25,8 @@ type Ativos = {
 // a sessão do usuário e o RLS só devolve o que ele comprou; (2) os
 // arquivos ficam em bucket PRIVADO e as URLs assinadas saem de
 // /api/learns/[slug]/ativos, que revalida a compra com o mesmo token.
+// O player grava progresso (progresso_learns, RLS own-only) — é o que
+// alimenta "Continue de onde parou" e a barra nos cards da vitrine.
 export default function LearnPage({
   params,
 }: {
@@ -31,13 +36,15 @@ export default function LearnPage({
   const { sessao, carregando } = useSessao();
   const [learn, setLearn] = useState<Learn | null | "sem_acesso">(null);
   const [ativos, setAtivos] = useState<Ativos | null>(null);
+  const [relacionados, setRelacionados] = useState<CardLearn[] | null>(null);
+  const ultimoSalvo = useRef(0);
 
   useEffect(() => {
     if (!sessao) return;
     const supabase = createBrowserSupabaseClient();
     supabase
       .from("learns")
-      .select("slug, titulo, resumo, duracao_segundos")
+      .select("id, slug, titulo, resumo, duracao_segundos")
       .eq("slug", slug)
       .maybeSingle()
       .then(({ data }) => setLearn(data ?? "sem_acesso"));
@@ -48,7 +55,30 @@ export default function LearnPage({
       .then((r) => (r.ok ? r.json() : null))
       .then((json) => setAtivos(json))
       .catch(() => setAtivos(null));
+
+    montarRelacionados(slug).then(setRelacionados).catch(() => setRelacionados([]));
   }, [sessao, slug]);
+
+  async function salvarProgresso(video: HTMLVideoElement, forcar = false) {
+    if (!sessao || !learn || learn === "sem_acesso") return;
+    const agora = Date.now();
+    if (!forcar && agora - ultimoSalvo.current < 10_000) return; // throttle 10s
+    ultimoSalvo.current = agora;
+    const duracao = Math.round(video.duration || learn.duracao_segundos || 0);
+    await createBrowserSupabaseClient()
+      .from("progresso_learns")
+      .upsert(
+        {
+          usuario_id: sessao.user.id,
+          learn_id: learn.id,
+          segundos_assistidos: Math.round(video.currentTime),
+          duracao_segundos: duracao || null,
+          concluido: duracao > 0 && video.currentTime / duracao > 0.97,
+          atualizado_at: new Date().toISOString(),
+        },
+        { onConflict: "usuario_id,learn_id" }
+      );
+  }
 
   if (carregando || (sessao && learn === null)) {
     return (
@@ -85,7 +115,7 @@ export default function LearnPage({
 
   const l = learn as Learn;
   return (
-    <main className="fundo-grid" style={{ minHeight: "100vh", padding: "32px 6vw 64px" }}>
+    <main style={{ minHeight: "100vh", padding: "32px 6vw 80px", background: "var(--black)" }}>
       <Link href="/dashboard" style={{ color: "var(--dusty-grey)", fontSize: 14 }}>
         ← Meus Learns
       </Link>
@@ -99,7 +129,15 @@ export default function LearnPage({
 
       <div className="cartao" style={{ marginTop: 28, padding: 0, overflow: "hidden", maxWidth: 1080 }}>
         {ativos?.video ? (
-          <video controls style={{ width: "100%", display: "block" }} src={ativos.video} poster="/logo-ar-amarelo.jpg" />
+          <video
+            controls
+            style={{ width: "100%", display: "block" }}
+            src={ativos.video}
+            poster="/logo-ar-amarelo.jpg"
+            onTimeUpdate={(e) => salvarProgresso(e.currentTarget)}
+            onPause={(e) => salvarProgresso(e.currentTarget, true)}
+            onEnded={(e) => salvarProgresso(e.currentTarget, true)}
+          />
         ) : (
           <div style={{ padding: 40, textAlign: "center" }}>
             <p style={{ color: "var(--dusty-grey)", fontSize: 15 }}>
@@ -123,6 +161,11 @@ export default function LearnPage({
           </a>
         ) : null}
       </div>
+
+      {/* Nunca beco sem saída: sempre há um próximo passo de consumo. */}
+      {relacionados && relacionados.length > 0 ? (
+        <VitrineRow titulo="Continue explorando" cards={relacionados} />
+      ) : null}
     </main>
   );
 }

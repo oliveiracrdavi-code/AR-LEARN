@@ -63,20 +63,25 @@ Data: 2026-07-18/19 · Sessão: finalização do frontend com os 3 MCPs.
   Checkout, nem leitura) — a página hospedada continua validável só no
   primeiro smoke test com chave real (checklist §4).
 
-## 4. Vercel — BLOQUEADO (só o Davi resolve)
+## 4. Vercel — AINDA BLOQUEADO (atualização pós-reconexão)
 
-O conector da Vercel aparece **desconectado** neste ambiente (as tools do
-MCP sumiram da sessão); não há `VERCEL_TOKEN` e o egress do sandbox
-bloqueia `api.vercel.com` (HTTP 000). Sem caminho técnico daqui.
+O Davi reconectou o conector e o deploy FOI tentado via MCP
+(`deploy_to_vercel`, team `oliveiracrdavi-codes-projects`). Resultado:
+**HTTP 403 — "You don't have permission to create a project"**. O token
+do conector é restrito: lista times/projetos (zero projetos existem),
+mas não pode CRIAR projeto. Não há tool de env vars no MCP, não há
+`VERCEL_TOKEN`, e o egress do sandbox bloqueia `api.vercel.com`.
 
-**Pra destravar (2 opções):**
-1. Reconectar o conector Vercel no ambiente e me pedir pra retomar o
-   deploy (retomo só este ponto); ou
+**Pra destravar (recomendo a opção 2 — é a solução definitiva):**
+1. Reautorizar o conector Vercel com permissão de criar/deployar
+   projetos e pedir pra retomar (retomo só este ponto); ou
 2. Na vercel.com: **Add New Project → Import** do repo
    `oliveiracrdavi-code/AR-LEARN` (branch
    `claude/ar-learn-platform-setup-63c3tl`), preencher as env vars da
-   tabela do `docs/deploy-checklist.md` §3 e deployar — o build passa
-   com essas envs (verificado localmente em produção-mode).
+   tabela do `docs/deploy-checklist.md` §3 e deployar. Com o repo
+   importado, todo push meu vira deploy automático — melhor que
+   qualquer deploy manual via MCP. O build passa com essas envs
+   (verificado localmente em modo produção).
 
 **Depois que a URL existir (qualquer opção):**
 - `NEXT_PUBLIC_SITE_URL` = https://<url-de-produção> (env na Vercel).

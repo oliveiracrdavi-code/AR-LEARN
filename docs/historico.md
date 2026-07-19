@@ -1251,3 +1251,26 @@ conector DESCONECTADO no ambiente + egress bloqueado => deploy ficou
 bloqueado (Davi reconecta o conector OU importa o repo na vercel.com;
 passos exatos em docs/deploy-final-log.md). Build ok, screenshots dos
 novos estados gerados.
+
+---
+
+## Sessão — Vitrine Netflix + landing turbinada (rodada "todos os MCPs")
+
+PDF de referência 21st.dev/React Bits lido ANTES da frente de design.
+Vitrine: migrations fixado_no_hero + progresso_learns (RLS own-only) +
+learns_publico estendida + learns_em_alta (agregada), aplicadas no AR
+ACADEMY e versionadas; /dashboard virou hero + fileiras horizontais por
+RESULTADO (Continue de onde parou, fileira por trilha, Em alta, Novos)
+com scroll snap/swipe/setas/teclado, skeleton shimmer, cards com estados
+comprado/bloqueado/progresso e spotlight goldenrod (técnica MagicBento
+adaptada, sem GSAP); player grava progresso; /learns/[slug] ganhou
+"Continue explorando"; admin fixa/solta o hero (server action). Landing:
+Motion (staggered hero, reveal ao scroll, chips spring), CartaoGlow,
+blobs de glow em deriva, moldura do player com glow. Higgsfield: 1 bg
+16:9 gerado na paleta (download bloqueado pelo egress — URL no log de
+design); HyperFrames/Canva/Figma não usados (racional no log); 3D: só
+PROPOSTA no log, aguardando o Davi. Vercel reconectada mas token sem
+permissão de criar projeto (403) => deploy segue bloqueado; recomendação:
+importar o repo na vercel.com (auto-deploy por push). Logs novos:
+vitrine-arquitetura-log.md, design-turbinado-log.md; zips de screenshots
+entregues no chat. Build verde.
