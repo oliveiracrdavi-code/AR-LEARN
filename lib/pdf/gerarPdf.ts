@@ -3,6 +3,25 @@ import type { LearnContrato } from "../openrouter/schema";
 
 type Learn = LearnContrato["learn"];
 
+// Parâmetros lidos do generation_config (tipo 'ebook') — a alteração
+// GERAL via IA edita esses valores; defaults = o que o código sempre
+// gerou. A esteira injeta via lerConfigAtivo("ebook").
+export type ParamsEbook = {
+  corpo: { tamanho_fonte_px: number; altura_linha: number };
+  titulo_px: number;
+  subtitulo_px: number;
+  margem_px: number;
+  espaco_entre_secoes_px: number;
+};
+
+export const PARAMS_EBOOK_DEFAULT: ParamsEbook = {
+  corpo: { tamanho_fonte_px: 13, altura_linha: 1.5 },
+  titulo_px: 24,
+  subtitulo_px: 17,
+  margem_px: 40,
+  espaco_entre_secoes_px: 24,
+};
+
 function escaparHtml(texto: string): string {
   return texto
     .replace(/&/g, "&amp;")
@@ -19,7 +38,7 @@ function escaparHtml(texto: string): string {
 // separado (Markmap interativo + imagem via Kroki), nunca embutido
 // aqui. Ajuste explícito de Davi em 2026-07-04: cada ativo (PDF, mapa
 // mental, vídeo) é sua própria seção/link na tela do Learn.
-function construirHtml(learn: Learn): string {
+function construirHtml(learn: Learn, p: ParamsEbook): string {
   const secoesHtml = learn.pdf.secoes
     .map(
       (secao) => `
@@ -43,15 +62,16 @@ function construirHtml(learn: Learn): string {
 <head>
 <meta charset="utf-8" />
 <style>
-  body { font-family: Arial, Helvetica, sans-serif; color: #1a1a1a; margin: 40px; }
-  h1 { font-size: 24px; margin-bottom: 4px; }
-  .trilha-modulo { color: #666; font-size: 13px; margin-bottom: 20px; }
-  .gancho { font-size: 15px; font-style: italic; margin-bottom: 24px; }
-  .secao h2 { font-size: 17px; margin-bottom: 4px; }
-  .secao p { font-size: 13px; line-height: 1.5; margin-top: 0; }
-  h3 { font-size: 15px; margin-bottom: 6px; }
-  ul { font-size: 13px; line-height: 1.5; }
-  .fechamento { margin-top: 24px; font-weight: bold; }
+  body { font-family: Arial, Helvetica, sans-serif; color: #1a1a1a; margin: ${p.margem_px}px; }
+  h1 { font-size: ${p.titulo_px}px; margin-bottom: 4px; }
+  .trilha-modulo { color: #666; font-size: ${p.corpo.tamanho_fonte_px}px; margin-bottom: 20px; }
+  .gancho { font-size: ${p.corpo.tamanho_fonte_px + 2}px; font-style: italic; margin-bottom: ${p.espaco_entre_secoes_px}px; }
+  .secao { margin-bottom: ${p.espaco_entre_secoes_px}px; }
+  .secao h2 { font-size: ${p.subtitulo_px}px; margin-bottom: 4px; }
+  .secao p { font-size: ${p.corpo.tamanho_fonte_px}px; line-height: ${p.corpo.altura_linha}; margin-top: 0; }
+  h3 { font-size: ${p.subtitulo_px - 2}px; margin-bottom: 6px; }
+  ul { font-size: ${p.corpo.tamanho_fonte_px}px; line-height: ${p.corpo.altura_linha}; }
+  .fechamento { margin-top: ${p.espaco_entre_secoes_px}px; font-weight: bold; }
 </style>
 </head>
 <body>
@@ -72,8 +92,12 @@ function construirHtml(learn: Learn): string {
 </html>`;
 }
 
-export async function gerarPdfDoLearn(learn: Learn, caminhoSaida: string): Promise<void> {
-  const html = construirHtml(learn);
+export async function gerarPdfDoLearn(
+  learn: Learn,
+  caminhoSaida: string,
+  params: ParamsEbook = PARAMS_EBOOK_DEFAULT
+): Promise<void> {
+  const html = construirHtml(learn, params);
 
   // Usa o Chromium já pré-instalado no ambiente de dev (evita tentar
   // baixar uma revisão nova, que não teria acesso de rede pra isso).

@@ -1333,3 +1333,30 @@ role auditada 100% server-side; npm audit com 2 moderadas documentadas
 (postcss do Next, não explorável no nosso build); /privacidade no
 footer. Gate do admin re-testado (7/7). Backups = conferência do plano
 no dashboard (Davi). Nenhuma env var nova — .env.vercel segue válido.
+
+---
+
+## Sessão — Fila completa + aprovação configurável + alterações via IA
+
+Correção do Davi aplicada: fila nasce com o catálogo INTEIRO
+(fila:enfileirar idempotente lista a uploads playlist toda) + episódios
+novos automáticos; processamento sequencial (fila:processar --lote N)
+com legenda->cérebro->learn respeitando o modo de publicação
+(plataforma_config: revisao_manual default / automatico — toggle no
+admin). Fila de revisão no admin: Aprovar->publica, Solicitar alteração
+(chat IA), Rejeitar->rascunho. Sistema de alterações: generation_config
+VERSIONADO por tipo (seed v1 = defaults reais do código; só 1 ativo;
+zod .strict com limites — piso 7min não desce), geradores LEEM o config
+(gerarPdf CSS parametrizado, converter com poda de profundidade, vídeo
+via props da esteira); alteração GERAL = NL -> IA (flash-lite barato,
+contexto mínimo, response_format json) -> preview com amostra visual
+antes/depois -> aprovar vira versão nova; INDIVIDUAL = chatbot por
+learn (campos aplicados na hora, regenerar marcado pro pipeline);
+alteracoes_log guarda instrução/resultado/status/tokens (custo real
+acompanhável no painel). Logs: fila-geracao-log.md (throughput medido:
+estruturação 40-60s/ep; gargalo render ~1 ep/runner-hora, Actions
+grátis em repo público com matriz; catálogo 300 eps ~US$10-20 de
+OpenRouter + 2,5-3 dias de render com 5 paralelos) e
+sistema-alteracoes-log.md (<US$0,001 por alteração). Migrations
+aplicadas no AR ACADEMY + versionadas; build verde. Chamada real das
+alterações valida no deploy (egress do sandbox segue bloqueado).

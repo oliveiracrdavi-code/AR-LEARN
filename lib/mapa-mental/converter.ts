@@ -4,7 +4,12 @@
 // INTERATIVO do site usa Markmap, que espera uma lista markdown
 // aninhada, não sintaxe Mermaid — os dois formatos não são iguais.
 // Esta função converte um pro outro (mesma árvore, sintaxe diferente).
-export function mermaidMindmapParaMarkdown(mermaidSource: string): string {
+// profundidadeMaxima vem do generation_config (tipo 'mindmap'):
+// null = sem poda (comportamento original); N = descarta níveis > N.
+export function mermaidMindmapParaMarkdown(
+  mermaidSource: string,
+  profundidadeMaxima: number | null = null
+): string {
   const linhas = mermaidSource.split(/\r?\n/).filter((l) => l.trim().length > 0);
   const corpo = linhas[0]?.trim() === "mindmap" ? linhas.slice(1) : linhas;
 
@@ -12,6 +17,7 @@ export function mermaidMindmapParaMarkdown(mermaidSource: string): string {
     .map((linha) => {
       const indentBruto = linha.match(/^(\s*)/)?.[1].length ?? 0;
       const nivel = Math.floor(indentBruto / 2);
+      if (profundidadeMaxima !== null && nivel >= profundidadeMaxima) return null;
       const texto = linha
         .trim()
         .replace(/^[-*]\s*/, "")
@@ -22,5 +28,6 @@ export function mermaidMindmapParaMarkdown(mermaidSource: string): string {
         .trim();
       return `${"  ".repeat(nivel)}- ${texto}`;
     })
+    .filter((l): l is string => l !== null)
     .join("\n");
 }

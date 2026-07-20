@@ -135,3 +135,45 @@ export async function concederAcesso(formData: FormData) {
   });
   redirect(error ? "/admin?acesso=falhou" : "/admin?acesso=ok");
 }
+
+// Toggle global: Automático (publica direto) vs Revisão Manual (item
+// fica 'em_revisao' até aprovação na Fila de Conteúdo). Preferência
+// ajustável a qualquer momento — não é decisão travada em código.
+export async function definirModoPublicacao(formData: FormData) {
+  if (!(await autorizado())) return;
+  const modo = formData.get("modo");
+  if (modo !== "automatico" && modo !== "revisao_manual") return;
+  await createServiceRoleSupabaseClient()
+    .from("plataforma_config")
+    .upsert(
+      { chave: "modo_publicacao", valor: modo, atualizado_at: new Date().toISOString() },
+      { onConflict: "chave" }
+    );
+  revalidatePath("/admin");
+}
+
+// Fluxo de aprovação (modo manual): Aprovar publica na vitrine na hora.
+export async function aprovarLearn(formData: FormData) {
+  if (!(await autorizado())) return;
+  const id = formData.get("learn_id");
+  if (typeof id !== "string") return;
+  await createServiceRoleSupabaseClient()
+    .from("learns")
+    .update({ status: "publicado", publicado_at: new Date().toISOString() })
+    .eq("id", id);
+  revalidatePath("/admin");
+}
+
+// Rejeitar/descartar: volta pra rascunho (fora da vitrine e da fila de
+// revisão). Nada é deletado — conteúdo raro de reaproveitar fica
+// recuperável.
+export async function rejeitarLearn(formData: FormData) {
+  if (!(await autorizado())) return;
+  const id = formData.get("learn_id");
+  if (typeof id !== "string") return;
+  await createServiceRoleSupabaseClient()
+    .from("learns")
+    .update({ status: "rascunho" })
+    .eq("id", id);
+  revalidatePath("/admin");
+}

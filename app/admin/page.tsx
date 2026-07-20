@@ -2,11 +2,16 @@ import { createServiceRoleSupabaseClient } from "@/lib/supabase/serviceRoleClien
 import { autorizado } from "./gate";
 import {
   alternarHero,
+  aprovarLearn,
   atualizarLearn,
   concederAcesso,
+  definirModoPublicacao,
   entrarAdmin,
+  rejeitarLearn,
   sairAdmin,
 } from "./acoes";
+import { AlteracoesPainel } from "./AlteracoesPainel";
+import { ChatLearn } from "./ChatLearn";
 
 export const dynamic = "force-dynamic";
 
@@ -118,15 +123,17 @@ export default async function AdminPage({ searchParams }: Props) {
   let perfis: { id: string; email: string | null; created_at: string }[] = [];
   let fila: { youtube_video_id: string; titulo: string | null; status_pipeline: string; processado_em: string | null }[] = [];
   let acessosAdmin: { ip: string | null; created_at: string }[] = [];
+  let modoPublicacao = "revisao_manual";
 
   try {
     const supabase = createServiceRoleSupabaseClient();
-    const [c, l, p, f, a] = await Promise.all([
+    const [c, l, p, f, a, m] = await Promise.all([
       supabase.from("compras").select("id, usuario_id, email, valor, status, provedor, created_at, aprovado_at, learn_id").order("created_at", { ascending: false }),
       supabase.from("learns").select("id, slug, titulo, resumo, status, preco_centavos, fixado_no_hero, thumbnail_url, publicado_at").order("created_at"),
       supabase.from("perfis").select("id, email, created_at").order("created_at", { ascending: false }).limit(100),
       supabase.from("episodios_processados").select("youtube_video_id, titulo, status_pipeline, processado_em").order("created_at", { ascending: false }).limit(20),
       supabase.from("admin_access_log").select("ip, created_at").order("created_at", { ascending: false }).limit(8),
+      supabase.from("plataforma_config").select("valor").eq("chave", "modo_publicacao").maybeSingle(),
     ]);
     if (c.error) throw c.error;
     compras = (c.data ?? []) as Compra[];
@@ -134,6 +141,7 @@ export default async function AdminPage({ searchParams }: Props) {
     perfis = p.data ?? [];
     fila = f.data ?? [];
     acessosAdmin = a.data ?? [];
+    modoPublicacao = m.data?.valor ?? "revisao_manual";
   } catch (e) {
     erroConexao = e instanceof Error ? e.message : "erro de conexão";
   }
@@ -248,6 +256,59 @@ export default async function AdminPage({ searchParams }: Props) {
             </tbody>
           </table></div>
 
+          {/* ── CONFIGURAÇÕES: MODO DE PUBLICAÇÃO ── */}
+          <h2 className="kicker" style={{ marginTop: 40 }}>Configurações</h2>
+          <div className="cartao" style={{ marginTop: 14, padding: 20, maxWidth: 640 }}>
+            <p style={{ fontWeight: 700, fontSize: 15 }}>Modo de publicação da esteira</p>
+            <p style={{ color: "var(--dusty-grey)", fontSize: 13, marginTop: 6 }}>
+              Revisão manual: tudo que a esteira gerar cai em “em revisão” na fila abaixo e
+              só entra na vitrine depois do seu Aprovar. Automático: publica direto ao
+              terminar. Ajustável a qualquer momento.
+            </p>
+            <form action={definirModoPublicacao} style={{ display: "flex", gap: 16, marginTop: 14, alignItems: "center", flexWrap: "wrap" }}>
+              <label style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 14, cursor: "pointer" }}>
+                <input type="radio" name="modo" value="automatico" defaultChecked={modoPublicacao === "automatico"} /> Automático
+              </label>
+              <label style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 14, cursor: "pointer" }}>
+                <input type="radio" name="modo" value="revisao_manual" defaultChecked={modoPublicacao === "revisao_manual"} /> Revisão manual
+                <span style={{ color: "var(--dusty-grey)", fontSize: 12 }}>(recomendado)</span>
+              </label>
+              <button type="submit" className="chip" style={{ cursor: "pointer", background: "transparent" }}>Salvar</button>
+            </form>
+          </div>
+
+          {/* ── ALTERAÇÕES VIA IA (GERAL) ── */}
+          <h2 className="kicker" style={{ marginTop: 40 }}>Alterações via IA</h2>
+          <AlteracoesPainel />
+
+          {/* ── FILA DE REVISÃO (aprovação manual) ── */}
+          {learns.some((l) => l.status === "em_revisao") ? (
+            <>
+              <h2 className="kicker" style={{ marginTop: 40 }}>Pendentes de revisão</h2>
+              <div style={{ display: "grid", gap: 12, marginTop: 14 }}>
+                {learns.filter((l) => l.status === "em_revisao").map((l) => (
+                  <div key={l.id} className="cartao" style={{ padding: 18, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 14, flexWrap: "wrap", borderColor: "rgba(255,203,0,0.5)" }}>
+                    <div>
+                      <strong>{l.titulo}</strong>
+                      <span style={{ color: "var(--dusty-grey)", fontSize: 13, marginLeft: 10 }}>/{l.slug}</span>
+                    </div>
+                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+                      <form action={aprovarLearn}>
+                        <input type="hidden" name="learn_id" value={l.id} />
+                        <button type="submit" className="botao-goldenrod" style={{ fontSize: 13.5, padding: "9px 20px" }}>Aprovar → publicar</button>
+                      </form>
+                      <ChatLearn learnId={l.id} titulo={l.titulo} />
+                      <form action={rejeitarLearn}>
+                        <input type="hidden" name="learn_id" value={l.id} />
+                        <button type="submit" className="chip" style={{ cursor: "pointer", background: "transparent", color: "#ff8a5c" }}>Rejeitar</button>
+                      </form>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : null}
+
           {/* ── GESTÃO DE LEARNS (CRUD) ── */}
           <h2 className="kicker" style={{ marginTop: 40 }}>Learns — gestão</h2>
           <div style={{ display: "grid", gap: 16, marginTop: 14 }}>
@@ -303,6 +364,9 @@ export default async function AdminPage({ searchParams }: Props) {
                     </button>
                   </div>
                 </form>
+                <div style={{ marginTop: 12 }}>
+                  <ChatLearn learnId={l.id} titulo={l.titulo} />
+                </div>
               </div>
             ))}
             {learns.length === 0 ? <p style={{ color: "var(--dusty-grey)" }}>Nenhum Learn cadastrado (rode o seed).</p> : null}

@@ -18,7 +18,9 @@
     "validacao-duracao:teste": "tsx scripts/testar-validacao-duracao.ts",
     "remotion:props": "tsx scripts/preparar-props-remotion.ts",
     "remotion:render": "remotion render remotion/src/index.ts LearnVideo scripts/output/video.mp4 --props=scripts/output/remotion-props.json",
-    "learn:subir-ativos": "tsx scripts/subir-ativos-learn.ts"
+    "learn:subir-ativos": "tsx scripts/subir-ativos-learn.ts",
+    "fila:enfileirar": "tsx --env-file=.env.local scripts/enfileirar-catalogo.ts",
+    "fila:processar": "tsx --env-file=.env.local scripts/processar-fila.ts"
   },
   "dependencies": {
     "@fontsource/anton": "^5.2.7",
