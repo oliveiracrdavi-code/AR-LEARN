@@ -23,6 +23,8 @@
     "fila:processar": "tsx --env-file=.env.local scripts/processar-fila.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1091.0",
+    "@aws-sdk/s3-request-presigner": "^3.1091.0",
     "@fontsource/anton": "^5.2.7",
     "@fontsource/open-sans": "^5.2.7",
     "@fontsource/poppins": "^5.2.7",
