@@ -218,7 +218,10 @@ export default function LandingPage() {
         }}
       >
         <span>© {new Date().getFullYear()} Altamente Rentável Academy</span>
-        <span>Conteúdo educacional gerado a partir do podcast Altamente Rentável.</span>
+        <span style={{ display: "flex", gap: 16 }}>
+          <Link href="/privacidade" style={{ color: "var(--dusty-grey)" }}>Privacidade</Link>
+          <span>Conteúdo educacional gerado a partir do podcast Altamente Rentável.</span>
+        </span>
       </footer>
     </main>
   );

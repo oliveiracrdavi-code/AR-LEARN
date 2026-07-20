@@ -1311,3 +1311,25 @@ entregue ao Davi pelo chat: 3 do Supabase confirmadas, ADMIN_TOKEN,
 OpenRouter/Groq replicadas, placeholders de SITE_URL (URL padrão da
 Vercel), EP171_VIDEO_URL (pós-YouTube) e Stripe sandbox (valores nunca
 passaram pela sessão — copiar do dashboard). Checklist atualizado.
+
+---
+
+## Sessão — Admin operacional + segurança real (rodada final pré-YouTube)
+
+Migration admin_operacional (compras.email, provedor 'manual',
+admin_access_log service-role-only) aplicada + versionada. Admin virou
+painel de operação: dashboard de vendas (receita total/7d/30d, gráfico
+CSS de 30 dias, conversão iniciado-vs-completado já rastreável — email
+gravado no início do checkout), últimas compras com e-mail MASCARADO
+(LGPD, toggle revelar), CRUD de Learns (título/descrição/preço/status/
+thumbnail override), fixar no hero, usuários+acessos com concessão
+manual (compra 'manual' R$0), fila da esteira, log de acessos com IP.
+Segurança: headers completos (HSTS/nosniff/DENY/Referrer/Permissions/
+CSP enxuta) verificados por curl; rate limit por IP no login do admin
+(5/15min) e checkout (10/10min); webhook conferido (assinatura antes de
+tudo); RLS RE-TESTADO no banco real com as tabelas novas (progresso de
+terceiro bloqueado; anon zero em tudo; limpeza confirmada); service
+role auditada 100% server-side; npm audit com 2 moderadas documentadas
+(postcss do Next, não explorável no nosso build); /privacidade no
+footer. Gate do admin re-testado (7/7). Backups = conferência do plano
+no dashboard (Davi). Nenhuma env var nova — .env.vercel segue válido.

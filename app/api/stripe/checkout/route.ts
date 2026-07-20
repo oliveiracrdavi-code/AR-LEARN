@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getStripe, siteUrl } from "@/lib/stripe/stripe";
 import { createServiceRoleSupabaseClient } from "@/lib/supabase/serviceRoleClient";
+import { ipDaRequisicao, permitido } from "@/lib/seguranca/rateLimit";
 
 export const dynamic = "force-dynamic";
 
@@ -11,6 +12,15 @@ export const dynamic = "force-dynamic";
 // pelo webhook (app/api/stripe/webhook).
 export async function POST(req: NextRequest) {
   try {
+    // 10 checkouts por IP a cada 10 min — barra spam de sessões/compras
+    // pendentes sem atrapalhar uso legítimo.
+    if (!permitido(`checkout:${ipDaRequisicao(req.headers)}`, 10, 10 * 60_000)) {
+      return NextResponse.json(
+        { erro: "Muitas tentativas — aguarde alguns minutos." },
+        { status: 429 }
+      );
+    }
+
     const { learnSlug, email } = await req.json();
     if (!learnSlug || !email) {
       return NextResponse.json({ erro: "learnSlug e email são obrigatórios" }, { status: 400 });
@@ -60,6 +70,7 @@ export async function POST(req: NextRequest) {
     // resolvido/criado na confirmação (guest checkout por email).
     const { error: erroCompra } = await supabase.from("compras").insert({
       usuario_id: null,
+      email, // dashboard de vendas + conversão (mascarado na exibição)
       learn_id: learn.id,
       valor: learn.preco_centavos / 100,
       // metodo_pagamento fica nulo no 'pendente' — o método real (pix ou

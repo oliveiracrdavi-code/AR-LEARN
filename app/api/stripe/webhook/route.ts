@@ -59,6 +59,7 @@ export async function POST(req: NextRequest) {
       .update({
         status: "aprovado",
         usuario_id: usuarioId,
+        email: email ?? null,
         metodo_pagamento: session.payment_method_types?.[0] ?? "pix",
         aprovado_at: new Date().toISOString(),
       })
