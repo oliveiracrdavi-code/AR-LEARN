@@ -1,12 +1,16 @@
-// Upload dos ativos de um Learn (vídeo, Ebook, mapa mental) pro bucket
-// PRIVADO `learns` + preenchimento das colunas do banco. É o elo que a
-// esteira do YouTube usa quando a chave chegar: renderizou/gerou =>
+// Upload dos ativos de um Learn: VÍDEO vai pro Cloudflare R2 (10GB free
+// + egress zero — o vídeo é o que gera tráfego alto quando as pessoas
+// assistem, motivo real da troca); Ebook e mapa mental continuam no
+// bucket PRIVADO `learns` do Supabase Storage (pequenos, não estouram
+// nada). É o elo que a esteira do YouTube usa: renderizou/gerou =>
 // chama subirAtivosDoLearn e o site passa a servir tudo via URLs
-// assinadas (/api/learns/[slug]/ativos). Sem guard "server-only" de
-// propósito: roda em scripts standalone e GitHub Actions.
+// assinadas (/api/learns/[slug]/ativos — cada provedor com seu próprio
+// gerador de presigned URL, mesma janela de 1h). Sem guard "server-only"
+// de propósito: roda em scripts standalone e GitHub Actions.
 import { readFile } from "node:fs/promises";
 import { basename, extname } from "node:path";
 import { createServiceRoleSupabaseClient } from "../supabase/serviceRoleClient";
+import { subirParaR2, r2Configurado } from "./r2";
 
 export const BUCKET_LEARNS = "learns";
 
@@ -20,6 +24,11 @@ const CONTENT_TYPES: Record<string, string> = {
   ".html": "text/html",
 };
 
+function contentTypeDe(caminho: string): string {
+  return CONTENT_TYPES[extname(caminho).toLowerCase()] ?? "application/octet-stream";
+}
+
+// Ebook/mapa mental — inalterado, Supabase Storage.
 export async function subirAtivoLearn(
   slug: string,
   caminhoLocal: string
@@ -27,16 +36,29 @@ export async function subirAtivoLearn(
   const supabase = createServiceRoleSupabaseClient();
   const destino = `${slug}/${basename(caminhoLocal)}`;
   const conteudo = await readFile(caminhoLocal);
-  const contentType =
-    CONTENT_TYPES[extname(caminhoLocal).toLowerCase()] ?? "application/octet-stream";
 
   const { error } = await supabase.storage
     .from(BUCKET_LEARNS)
-    .upload(destino, conteudo, { contentType, upsert: true });
+    .upload(destino, conteudo, { contentType: contentTypeDe(caminhoLocal), upsert: true });
   if (error) {
     throw new Error(`Upload de ${caminhoLocal} falhou: ${error.message}`);
   }
-  return destino; // caminho no bucket — é o que vai pra coluna do learn
+  return destino; // caminho no bucket Supabase — vai pra coluna do learn
+}
+
+// Vídeo — R2. Key com o mesmo padrão de path do Supabase (slug/arquivo)
+// pra manter previsibilidade entre os dois provedores.
+export async function subirVideoLearn(slug: string, caminhoLocal: string): Promise<string> {
+  if (!r2Configurado()) {
+    throw new Error(
+      "R2 não configurado (R2_ACCOUNT_ID/R2_ACCESS_KEY_ID/R2_SECRET_ACCESS_KEY ausentes) — " +
+        "vídeo não foi enviado. Ebook/mapa seguem indo pro Supabase normalmente."
+    );
+  }
+  const key = `${slug}/${basename(caminhoLocal)}`;
+  const conteudo = await readFile(caminhoLocal);
+  await subirParaR2(key, conteudo, contentTypeDe(caminhoLocal));
+  return key; // key no bucket R2 — vai pra learns.video_url com video_storage='r2'
 }
 
 export async function subirAtivosDoLearn(
@@ -46,7 +68,10 @@ export async function subirAtivosDoLearn(
   const supabase = createServiceRoleSupabaseClient();
   const atualizacao: Record<string, string> = {};
 
-  if (ativos.video) atualizacao.video_url = await subirAtivoLearn(slug, ativos.video);
+  if (ativos.video) {
+    atualizacao.video_url = await subirVideoLearn(slug, ativos.video);
+    atualizacao.video_storage = "r2";
+  }
   if (ativos.ebook) atualizacao.ebook_url = await subirAtivoLearn(slug, ativos.ebook);
   if (ativos.mapa) {
     atualizacao.mapa_mental_imagem_url = await subirAtivoLearn(slug, ativos.mapa);

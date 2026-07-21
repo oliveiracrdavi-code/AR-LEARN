@@ -6,17 +6,22 @@ import type { NextConfig } from "next";
 //   flight inline) e pelos estilos inline do design system;
 // - connect-src inclui o Supabase (auth/dados/storage assinado);
 // - img-src inclui i.ytimg.com (thumbnails reais dos episódios);
-// - media-src https:/blob: cobre vídeo do Storage por URL assinada;
+// - media-src cobre o vídeo por URL assinada: Supabase (Ebook/mapa não
+//   passam por <video>, então não precisam aqui) + R2 (migração
+//   2026-07-21 — domínio genérico *.r2.cloudflarestorage.com porque o
+//   account_id específico ainda não chegou; refinar pro subdomínio
+//   exato assim que a conta existir);
 // - frame-ancestors 'none' + X-Frame-Options DENY: ninguém emoldura o
 //   site (clickjacking).
 const SUPABASE = "https://gmwtkcjpjmcwsnjrgeen.supabase.co";
+const R2 = "https://*.r2.cloudflarestorage.com";
 const csp = [
   "default-src 'self'",
   "script-src 'self' 'unsafe-inline'",
   "style-src 'self' 'unsafe-inline'",
   `connect-src 'self' ${SUPABASE}`,
   "img-src 'self' data: https://i.ytimg.com",
-  `media-src 'self' blob: ${SUPABASE}`,
+  `media-src 'self' blob: ${SUPABASE} ${R2}`,
   "font-src 'self'",
   "frame-ancestors 'none'",
   "base-uri 'self'",

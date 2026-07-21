@@ -1360,3 +1360,24 @@ OpenRouter + 2,5-3 dias de render com 5 paralelos) e
 sistema-alteracoes-log.md (<US$0,001 por alteração). Migrations
 aplicadas no AR ACADEMY + versionadas; build verde. Chamada real das
 alterações valida no deploy (egress do sandbox segue bloqueado).
+
+---
+
+## Sessão — Migração de storage de vídeo: Supabase → Cloudflare R2
+
+lib/storage/r2.ts (cliente S3-compatible via @aws-sdk/client-s3, upload/
+presigned URL 1h/delete, guard claro sem credenciais); migration
+video_storage_r2 (learns.video_storage 'r2'|'supabase', default 'r2')
+aplicada no AR ACADEMY + versionada. ativosLearn.ts: vídeo roteado pro
+R2 (subirVideoLearn), Ebook/mapa inalterados no Supabase. Rota de
+ativos resolve por provedor conforme video_storage, MESMO modelo de
+segurança nos dois (presigned 1h sob demanda, revalida compra via RLS
+antes). CSP com media-src incluindo *.r2.cloudflarestorage.com
+(wildcard até account_id chegar). Checagem honesta ANTES de reportar:
+video_url do #171 é null, 0 objetos no bucket Supabase — não existe
+vídeo antigo pra migrar (upload real nunca rodou, ficou pendente desde
+a Fase 3 aguardando a chave YouTube); item "baixar->subir->validar->
+remover" documentado como não-aplicável, e o código já nasce no estado
+final que ele pediria (próximo upload já vai direto pro R2). Envs
+placeholder em .env.example e .env.vercel (5 vars R2). Build verde.
+Credenciais R2 pendentes do Davi.

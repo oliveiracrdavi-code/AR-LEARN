@@ -5,7 +5,10 @@
 //   npx tsx scripts/subir-ativos-learn.ts <slug> \
 //     [--video caminho.mp4] [--ebook caminho.pdf] [--mapa caminho.png]
 //
-// Requer NEXT_PUBLIC_SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY no env.
+// Requer NEXT_PUBLIC_SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY no env
+// (Ebook/mapa) e R2_ACCOUNT_ID + R2_ACCESS_KEY_ID + R2_SECRET_ACCESS_KEY
+// + R2_BUCKET_NAME (vídeo) — sem as chaves R2, --video falha com erro
+// claro e --ebook/--mapa continuam funcionando normalmente.
 import { subirAtivosDoLearn } from "../lib/storage/ativosLearn";
 
 function argumento(flag: string): string | undefined {
