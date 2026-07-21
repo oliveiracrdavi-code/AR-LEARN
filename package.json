@@ -20,7 +20,8 @@
     "remotion:render": "remotion render remotion/src/index.ts LearnVideo scripts/output/video.mp4 --props=scripts/output/remotion-props.json",
     "learn:subir-ativos": "tsx scripts/subir-ativos-learn.ts",
     "fila:enfileirar": "tsx --env-file=.env.local scripts/enfileirar-catalogo.ts",
-    "fila:processar": "tsx --env-file=.env.local scripts/processar-fila.ts"
+    "fila:processar": "tsx --env-file=.env.local scripts/processar-fila.ts",
+    "r2:testar": "tsx --env-file=.env.local scripts/testar-r2-conexao.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1091.0",

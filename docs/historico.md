@@ -1381,3 +1381,26 @@ remover" documentado como não-aplicável, e o código já nasce no estado
 final que ele pediria (próximo upload já vai direto pro R2). Envs
 placeholder em .env.example e .env.vercel (5 vars R2). Build verde.
 Credenciais R2 pendentes do Davi.
+
+---
+
+## Sessão — Validação de conexão real com R2 (credenciais entregues, bucket ausente)
+
+Credenciais R2 reais chegaram e foram gravadas em .env.local + .env.vercel
+(gitignored, confirmado). Teste de ponta a ponta (upload->presigned->
+download->expiração->delete) escrito e rodado. Rede/egress OK (Server:
+cloudflare + CF-RAY confirmam R2 real, não bloqueio de proxy). Auth OK
+(requisições assinadas aceitas). Falha isolada com precisão via 5
+chamadas diagnóstico: bucket "ar-learn-videos" NÃO EXISTE (HeadBucket
+404 NotFound, ListObjectsV2 404 NoSuchBucket); token também não tem
+permissão de CreateBucket nem ListBuckets (403 AccessDenied nos dois) -
+é um token escopado só a objeto, não admin. Não tentei contornar (não
+inventei nome alternativo nem criei lógica de auto-criar bucket) -
+reportado o erro exato como pedido. Pendência do Davi: criar o bucket
+manualmente no dashboard (mesmas credenciais já funcionam depois) OU
+informar o nome real se existir com outro nome OU reemitir token com
+permissão Admin Read & Write. scripts/testar-r2-conexao.ts versionado
+(npm run r2:testar) para revalidar em segundos assim que resolvido.
+Nenhum lixo de teste ficou no bucket (upload nunca completou). Build
+verde; guard antigo "faltam as chaves" agora dá lugar ao erro real da
+API quando alguém tentar subir vídeo.

@@ -71,28 +71,70 @@ código atual que mande vídeo novo pro Supabase Storage — só o `--video`
 do CLI, que agora chama `subirVideoLearn` → R2. Confirmado por leitura
 do código (não por teste com credencial real, que ainda não existe).
 
-## Pendências (Davi)
+## Validação de conexão real — 2026-07-21 (credenciais entregues)
 
-- Credenciais R2 (`R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`,
-  `R2_SECRET_ACCESS_KEY`) — geradas no painel Cloudflare (R2 → Manage
-  API Tokens). Sem elas: `subirVideoLearn` falha com erro claro
-  ("R2 não configurado...") e **Ebook/mapa continuam subindo
-  normalmente** — nada trava por causa do vídeo.
-- Nome do bucket: usei `ar-learn-videos` (sugerido no prompt) como
-  default em `R2_BUCKET_NAME` — trocável via env sem tocar código.
-- Região: R2 não usa região no sentido S3 tradicional (`region: "auto"`
-  no client) — decisão já embutida no código, nada a escolher.
-- `.env.vercel` (bloco copy-paste, gitignored) atualizado com as 5 vars
-  novas como placeholder "aguardando Davi gerar no painel".
+Credenciais recebidas e gravadas no `.env.local` (gitignored, confirmado)
+e no `.env.vercel` (gitignored, bloco copy-paste). Rodei o teste de
+ponta a ponta pedido (`scripts/testar-r2-conexao.ts`): upload → presigned
+URL → download → confere expiração → delete.
 
-## Validação nesta sessão
+**Resultado: FALHOU — mas o motivo é preciso e não é rede nem chave
+errada.**
 
-- Build de produção verde com o roteamento novo.
-- Migration aplicada no projeto real (AR ACADEMY) e confirmada por
-  consulta SQL.
-- Checagem honesta do estado do Storage (acima) antes de reportar
-  qualquer coisa como "migrado".
-- Chamada real ao R2 **não pôde ser exercitada** (sem credenciais ainda
-  + egress do sandbox bloqueia domínios externos de qualquer forma) —
-  válida no primeiro upload real, com o mesmo padrão de erro claro que
-  o resto do projeto usa quando uma credencial falta.
+1. **Rede/egress**: OK. `curl -I` no `R2_ENDPOINT` devolveu
+   `Server: cloudflare` + `CF-RAY` — é o R2 de verdade respondendo, não
+   um bloqueio de proxy do sandbox (diferente do padrão visto com
+   Supabase/OpenRouter em sessões anteriores).
+2. **Autenticação**: as credenciais SÃO válidas — as requisições
+   assinadas (SigV4) chegam e são processadas pelo R2 (erros
+   estruturados de S3, não "chave inválida"/"assinatura não bate").
+3. **Causa raiz, isolada com 3 chamadas diagnóstico diretas** (upload,
+   `HeadBucket`, `ListObjectsV2`, `CreateBucket`, `ListBuckets`):
+
+   | Chamada | Resultado |
+   |---|---|
+   | `PutObject` no bucket `ar-learn-videos` | `403 AccessDenied` |
+   | `HeadBucket(ar-learn-videos)` | **`404 NotFound`** |
+   | `ListObjectsV2(ar-learn-videos)` | **`404 NoSuchBucket` — "The specified bucket does not exist."** |
+   | `CreateBucket(ar-learn-videos)` (tentei criar, já que é o passo 1 do prompt anterior) | `403 AccessDenied` |
+   | `ListBuckets` (conta inteira) | `403 AccessDenied` |
+
+   **O bucket `ar-learn-videos` não existe nesta conta R2**, e o token
+   também não tem permissão de criar bucket nem listar buckets — está
+   escopado só a operações de objeto (get/put/delete) dentro de um
+   bucket que precisa já existir. Ou seja: falta **criar o bucket** (não
+   é algo que eu consiga fazer com este token) — o passo 1 do prompt de
+   migração original ("criar um bucket privado, ex.: ar-learn-videos")
+   nunca foi executado por ninguém ainda, porque antes não havia
+   credencial pra fazer isso via API, e parece que também não foi
+   criado manualmente no dashboard.
+
+**Não tentei contornar** (não inventei nome alternativo de bucket, não
+mudei o código pra criar-e-tentar-de-novo automaticamente) — reportando
+o erro exato, como pedido.
+
+### O que precisa do Davi (uma das três)
+
+1. **Criar o bucket manualmente**: Cloudflare Dashboard → R2 → Create
+   bucket → nome `ar-learn-videos` → privado (sem acesso público). Depois
+   disso as MESMAS credenciais já devem funcionar (é só permissão de
+   objeto, que o token já tem) — não precisa gerar token novo.
+2. **Ou**, se o bucket já existe com outro nome: me passar o nome real
+   pra eu trocar `R2_BUCKET_NAME`.
+3. **Ou**, se preferir que eu crie o bucket via API: reemitir o token
+   com permissão "Admin Read & Write" (a atual parece ser "Object Read
+   & Write", que não inclui gestão de bucket).
+
+### Estado do código nesta sessão
+
+- `.env.local` e `.env.vercel` atualizados com as credenciais reais
+  (não são mais placeholder) — a única coisa pendente é a existência do
+  bucket, não configuração.
+- `scripts/testar-r2-conexao.ts` criado e versionado — reutilizável
+  assim que o bucket existir (rodar de novo confirma tudo em segundos).
+- Nenhum arquivo de teste ficou no bucket (nunca chegou a subir nada,
+  falhou antes do upload completar).
+- `subirVideoLearn`/`fila:processar`/`learn:subir-ativos` **ainda vão
+  falhar** ao tentar subir vídeo — agora com o erro real do R2
+  (`NoSuchBucket`/`AccessDenied`) em vez do guard antigo de "faltam as
+  chaves". Ebook/mapa continuam 100% funcionais, sem depender disso.
