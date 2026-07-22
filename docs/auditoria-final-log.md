@@ -93,6 +93,96 @@ comentários, não marcador de pendência):
   (a proteção de dados sempre existiu via RLS; só o comentário estava
   errado). Troquei o TODO por um comentário que descreve o padrão real.
 
+---
+
+## SEÇÃO C — Segurança: Admin + Cada Conta de Usuário
+
+### Admin (re-confirmar que nada regrediu)
+
+Re-rodei os 7 cenários automatizados (`scripts/testar-admin-gate.ts`,
+Playwright contra build de produção real, `next start`):
+
+```
+ok 1: sem token bloqueia
+ok 2: token errado bloqueia com aviso
+ok 3: token certo libera o painel
+ok 4: sessão por cookie persiste
+ok 5: sair volta a bloquear
+ok 6: ?token= não libera (removido de propósito)
+ok 7: token não vaza no HTML no fluxo form+cookie
+
+GATE DO ADMIN: todos os 7 cenários passaram.
+```
+
+Headers de segurança re-confirmados via `curl -I` no build atual —
+HSTS, `X-Content-Type-Options`, `X-Frame-Options: DENY`,
+`Referrer-Policy`, `Permissions-Policy`, CSP — todos presentes, sem
+regressão. Rate limiting (`lib/seguranca/rateLimit.ts`) confirmado
+ainda importado em `app/admin/acoes.ts`.
+
+### Conta de usuário comum (ponto novo desta rodada)
+
+**1. RLS nas tabelas administrativas/novas — testado ao vivo no banco
+real** (não só lido no código), simulando `anon` e `authenticated`
+via `set local role` + `request.jwt.claims` (mesmo mecanismo que o
+PostgREST usa pra aplicar RLS):
+
+```sql
+-- role anon
+{"admin_access_log":0,"generation_config":0,"plataforma_config":0,"alteracoes_log":0,"episodios_processados":0}
+-- role authenticated (usuário comum, uid fictício)
+{"admin_access_log":0,"generation_config":0,"plataforma_config":0,"alteracoes_log":0,"episodios_processados":0}
+```
+
+Zero linhas em todas as 5 tabelas administrativas, nos dois papéis.
+Também testei o caminho de escrita: `insert into admin_access_log`
+como `authenticated` → bloqueado com `insufficient_privilege` (RLS
+ativo sem nenhuma policy = deny-all pra `anon`/`authenticated`, só
+`service_role` — que tem `bypassrls` — passa). Confirmado por leitura
+das migrations (`generate table ... enable row level security`, zero
+`create policy` pra essas 5 tabelas) e pela query ao vivo acima.
+
+**2. Cookie httpOnly/secure/sameSite da sessão comum — investigado a
+fundo, decisão registrada com o Davi.** Hoje a sessão do usuário comum
+fica em `localStorage` (supabase-js padrão), não em cookie — diferente
+do admin. Tentei implementar paridade real (`@supabase/ssr` + fluxo
+PKCE + middleware de renovação) e descobri um obstáculo arquitetural
+genuíno: o app faz queries **diretas do browser** ao Supabase
+(`dashboard`, `learns/[slug]` chamam `.from('learns').select()` no
+client, contando com RLS pra segurança) — um cookie **verdadeiramente**
+httpOnly impediria o JS de ler o token pra essas chamadas, quebrando
+esse padrão inteiro. A correção completa exigiria mover essas queries
+pra rotas server-side, um refactor maior que este round de auditoria.
+Além disso, **não consigo testar o fluxo de magic link neste sandbox**
+(mesma política de rede que bloqueou o teste do R2/Supabase — ver
+`docs/migracao-r2-log.md` — bloquearia qualquer chamada real ao
+Supabase Auth) — shippar um refactor de login sem testar seria
+irresponsável nesta rodada.
+
+Apresentei 3 opções ao Davi via pergunta direta; ele escolheu **manter
+localStorage e reforçar a documentação do trade-off** (opção
+recomendada). Mitigação já em vigor: CSP restritiva (`script-src
+'self'`, sem scripts de terceiros, sem `dangerouslySetInnerHTML` em
+lugar nenhum do código — confirmado por grep) reduz a superfície de
+XSS que seria necessária pra roubar o token em primeiro lugar. Decisão
+consciente e registrada, não uma pendência esquecida.
+
+**3. Endpoint que vaze dado de outro usuário sem querer** — auditei as
+6 rotas de API existentes (`app/api/**/route.ts`). As 3 rotas
+`/api/admin/*` (4 handlers) todas checam `autorizado()` antes de
+qualquer query — confirmado por grep E por `curl` ao vivo sem cookie:
+`401` nas três. `/api/learns/[slug]/ativos` exige `Authorization:
+Bearer` e revalida a compra via RLS antes de assinar qualquer URL —
+confirmado `401` sem header. Não existe rota "usuários" nem nenhuma
+outra rota que devolva dado sem gate. `/api/stripe/webhook` valida
+assinatura Stripe antes de processar (já auditado antes, sem
+regressão).
+
+**4. Logout do usuário comum** — `dashboard/page.tsx` tem botão "Sair"
+chamando `supabase.auth.signOut()` (limpa a sessão) e redireciona pra
+`/`. Confirmado por leitura do código; é a mesma API oficial do
+supabase-js, comportamento padrão e testado pela própria lib.
+
 **Achado extra durante essa checagem** (fora do TODO, mas relacionado):
 `app/(members)/modulos/[slug]/page.tsx` e `.../trilhas/[slug]/page.tsx`
 eram **stubs órfãos** — sem nenhuma consulta a dado nenhum, sem link
