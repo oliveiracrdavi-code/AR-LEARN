@@ -1,5 +1,14 @@
 # Fila de geração — throughput real e custo estimado do catálogo
 
+> **Atualização 2026-07-22** (`docs/auditoria-final-log.md`, Seção F):
+> o catálogo real é **~700 episódios**, não 150–300. A estimativa de
+> tamanho de vídeo abaixo (~30MB/ep) era um chute pré-render; hoje
+> existe um render final real medido (137,8MB, episódio 171 v2, 530s)
+> — os números de storage/tempo recalculados com esse dado estão na
+> Seção F do log da auditoria, não repetidos aqui pra evitar duas
+> fontes divergentes. O resto deste documento (throughput de
+> estruturação, mecanismo da fila) segue válido.
+
 Data: 2026-07-20. Correção do Davi aplicada: a fila nasce com **TODO o
 catálogo + episódios novos automaticamente** — sem lotes manuais. O que
 segue sequencial/limitado é só o PROCESSAMENTO (limite físico de

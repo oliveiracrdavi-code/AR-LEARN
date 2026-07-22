@@ -305,3 +305,107 @@ ser verificadas visualmente com dados reais**: o sandbox não alcança
 possível em produção/deploy — reportado com honestidade, não inventado.
 
 ---
+
+## SEÇÃO F — Auditoria de Escala Real (~700 episódios)
+
+### 1. Contagem real via YouTube Data API — BLOQUEADO (mesmo motivo de sempre)
+
+`YOUTUBE_CLIENT_ID`/`YOUTUBE_CLIENT_SECRET`/`YOUTUBE_REFRESH_TOKEN`
+continuam ausentes de `.env.local` (confirmado: zero linhas
+`YOUTUBE_` no arquivo). Sem essas credenciais, `lib/youtube/oauth.ts`
+não consegue autenticar nenhuma chamada — não existe caminho de API
+key simples nesse código (ver Seção A, item 4). **Não rodei a
+consulta real pedida** porque não há como, honestamente — reportando
+o bloqueio em vez de inventar um número. Os "~700" usados abaixo são o
+número que o Davi passou nesta rodada, não uma contagem confirmada
+pela API; quando a credencial chegar, `npm run fila:enfileirar` traz o
+número exato automaticamente (não precisa de passo manual extra).
+
+### 2. Tempo e custo do backfill — recalculado com dado real medido (não chute)
+
+Achei uma fonte de dado real melhor que a estimativa anterior (~30MB/ep,
+de `docs/fila-geracao-log.md`, feita antes de haver um render completo
+pra medir): o vídeo final do episódio 171 já renderizado existe em
+`scripts/output/episodes/171/ar_learn_171_16x9_final_v2.mp4`,
+**137,8 MB reais**, medido com `ls -la` (não estimado). Duração
+documentada dessa geração em `docs/historico.md`: **530s (~8,8 min)**.
+
+| Métrica | Valor medido | Fonte |
+|---|---|---|
+| Tamanho do vídeo final (ep. 171, v2) | **137,8 MB** | `ls -la scripts/output/episodes/171/ar_learn_171_16x9_final_v2.mp4` |
+| Duração dessa geração | 530s (~8,8 min) | `docs/historico.md`, 2026-07-04 |
+| Bitrate implícito | ~2,08 Mbps | 137,8MB×8 / 530s |
+| Estruturação (cérebro) | 40–60s/ep | medido no workflow `teste-cerebro.yml`, `docs/fila-geracao-log.md` |
+| Render (gargalo) | 35–70 min/ep num runner padrão | taxa observada, `docs/fila-geracao-log.md` |
+
+**Recalculado pra 700 episódios** (usando os mesmos números medidos,
+só trocando 150–300 por 700):
+
+- **Estruturação** (sequencial, é o design — ver
+  `docs/fila-geracao-log.md` sobre por que não é paralelo): 700 ×
+  40–60s = **7,8h a 11,7h corridas**, cabe numa madrugada/fim de
+  semana.
+- **Render** (gargalo real): 700 × 35–70 min = 408h–817h de compute.
+  Com 5 jobs paralelos no GitHub Actions (mesma configuração já
+  documentada): **~82h a ~163h de parede, ou seja ~3,4 a ~6,8 dias
+  corridos** rodando sem parar.
+- **Custo OpenRouter**: 700 × US$0,03–0,06/ep = **US$ 21 a US$ 42**
+  (mesma tarifa já documentada, não mudou).
+- **Custo de compute (GitHub Actions)**: **R$ 0** — confirmado que o
+  repositório é público (`"private": false` na resposta da API do
+  GitHub, conferida nesta mesma sessão ao consultar o workflow run) —
+  repositório público tem minutos de Actions em runner padrão
+  **ilimitados e grátis**, não é suposição.
+
+### 3. Storage R2 — projeção de custo real (não "deve ser centavos", o número exato)
+
+Usando os 137,8MB reais/episódio como referência (n.b.: a duração real
+de cada episódio varia com o conteúdo da fonte — este é o único ponto
+de dado medido disponível hoje; o total vai ajustar sozinho conforme
+os episódios reais renderizarem):
+
+- **700 × 137,8 MB ≈ 94,2 GB** de vídeo total no R2.
+- **Free tier R2**: 10 GB/mês, confirmado via busca (preço oficial
+  Cloudflare 2026): storage padrão **US$ 0,015/GB-mês** acima disso,
+  **egress sempre grátis** (não cobra nunca, nem no excedente),
+  operações Classe A US$4,50/milhão e Classe B US$0,36/milhão — nosso
+  volume de operações (algumas centenas de upload/mês) é irrisório
+  perto disso.
+- **Excedente**: 94,2 − 10 = 84,2 GB × US$0,015 = **≈ US$ 1,26/mês**.
+
+Ou seja: o número exato pedido é **cerca de US$ 1,25 a US$ 1,50 por
+mês** pra guardar o catálogo de vídeo inteiro no R2, não "alguns
+centavos" vago — e isso **nunca aumenta com visualizações** (egress
+zero é o ponto principal da migração pro R2, documentado em
+`docs/migracao-r2-log.md`).
+
+**Ebook + mapa mental continuam no Supabase, confirmado que cabem
+tranquilo**: PDFs reais gerados variam 68–232 KB, mapas mentais (SVG)
+~76 KB (medidos com `du -h` em `scripts/output/`). Usando o teto
+observado (~330 KB/episódio combinado): 700 × 330 KB ≈ **225 MB**
+total — **22% do teto de 1 GB do plano Free do Supabase**, não estoura
+nada, confirma a decisão de design já registrada.
+
+### 4. Esteira nova + backfill em paralelo, sem um bloquear o outro — confirmado por leitura do código
+
+`scripts/processar-fila.ts` seleciona os próximos pendentes com
+`.order("prioridade", {ascending:false}).order("data_publicacao_youtube",
+{ascending:false})` — **episódios novos (data de publicação mais
+recente) já saem na frente do backlog antigo automaticamente**, mesmo
+sem usar a injeção manual da Seção E. `npm run fila:enfileirar` é
+idempotente (unique em `youtube_video_id`, upsert preserva o status de
+quem já está andando) — rodar de novo pra pegar um episódio novo nunca
+duplica nem atrapalha o que já está em processamento. Não há trava
+nem fila separada por "tipo" — é a mesma fila, ordenada de um jeito
+que já favorece o conteúdo novo por padrão.
+
+### 5. Revisão manual em escala — resolvido pela Seção E
+
+Bulk approve/reject (Seção E, item 1) é exatamente a resposta a este
+ponto: com aprovação em lote, revisar 700 itens deixa de ser "700
+cliques" e vira "selecionar página e confirmar" — não é mais um
+problema de escala. Sem teste de carga real com 700 linhas (não há
+dado real na fila ainda), mas a implementação usa `.in("id", ids)`
+num único update, então o custo não escala por item selecionado.
+
+---
