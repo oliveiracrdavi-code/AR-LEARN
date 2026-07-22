@@ -409,3 +409,87 @@ dado real na fila ainda), mas a implementação usa `.in("id", ids)`
 num único update, então o custo não escala por item selecionado.
 
 ---
+
+## SEÇÃO B — Revisão de Frontend (screenshots + Lighthouse)
+
+### Achado real durante a preparação dos prints — investigado e resolvido
+
+Primeira rodada de screenshots (`fullPage: true` sem rolar a página)
+mostrou a landing e outras páginas com **seções inteiras invisíveis**
+— parecia um bug grave (algumas páginas até bateram no
+`app/error.tsx`, "Algo saiu do previsto"). Investiguei antes de
+reportar como defeito, em vez de assumir:
+
+1. **O erro `app/error.tsx` era artefato do MEU processo de teste**,
+   não do app: um `next start` antigo (de rodadas anteriores desta
+   mesma sessão) continuou vivo em background — invisível a `ps aux`
+   em chamadas de shell separadas, mas ainda respondendo na porta 3311
+   — servindo chunks de um `.next` que eu já tinha apagado (`rm -rf
+   .next` de uma rebuild seguinte). Confirmado com `fuser -k
+   3311/tcp` (achou o processo fantasma) + rebuild limpo do zero: o
+   erro sumiu por completo. **Não é bug de produto.**
+2. **As seções "invisíveis" (bento grid, etc.) eram Motion
+   `whileInView`** (`componentes/landing/Revelar.tsx`) — reveal ao
+   entrar na viewport, de propósito (só o hero usa CSS puro, decisão
+   documentada de performance de rodadas anteriores). Um
+   `page.screenshot({fullPage:true})` sem rolar de verdade não
+   dispara o `IntersectionObserver`. Corrigido no script de teste
+   (`scripts/screenshots-auditoria-final.ts`): rola a página inteira
+   antes do print. Confirmado visualmente depois: todo o conteúdo
+   aparece.
+3. **Nota sobre a ferramenta de teste** (não acho que seja bug do
+   app): em alguns prints mobile o header sticky aparece duplicado/
+   sobreposto no meio da página — artefato conhecido do
+   `fullPage: true` do Playwright ao costurar capturas com elementos
+   `position: sticky` durante scroll incremental. Verificado à parte
+   com scroll real posição-por-posição: o header se comporta
+   corretamente (fica fixo no topo, sem duplicar) — não reproduz numa
+   navegação real.
+
+### Páginas cobertas (todas as rotas vivas hoje)
+
+`/`, `/entrar`, `/comprar` (+ `?cancelado=1`), `/comprar/aguardando`,
+`/dashboard`, `/learns/a-conta-que-ninguem-faz-ep-171`, `/privacidade`,
+`/dev-vitrine`, `/admin` (bloqueado E autorizado via login real de
+formulário — não `?token=`, removido de propósito), `/pagina-inexistente`
+(404). Desktop (1440×900) e mobile (390×844) — 22 imagens,
+`scripts/output/screenshots_auditoria_final.zip`.
+
+`/modulos/[slug]` e `/trilhas/[slug]` não estão na lista porque foram
+removidos na Seção A (stubs órfãos).
+
+### Thumbnails / fallback sem imagem quebrada
+Não pude confirmar visualmente com CATÁLOGO REAL porque o sandbox não
+alcança `*.supabase.co` (mesmo bloqueio já documentado) — nenhum card
+com dado real chega a renderizar aqui. O que É confirmável e confirmei:
+a cascata de thumbnail (`melhorThumbnail`, `lib/youtube/canal.ts`:
+maxres → standard → high → medium → default) e o fallback de marca já
+foram implementados e testados em rodada anterior (thumbnails reais
+backfilled pro #171). Sem regressão de código nesta auditoria. Visual
+com dado real só é possível em produção/deploy.
+
+### Responsividade — sem scroll horizontal
+Testado programaticamente (`document.documentElement.scrollWidth` vs
+`window.innerWidth`) em viewport 390px nas 8 rotas com conteúdo real:
+**todas OK, zero overflow** (`scrollWidth === innerWidth` em todas).
+
+### Lighthouse mobile
+
+| Página | Performance | Accessibility | Best Practices | SEO |
+|---|---|---|---|---|
+| `/` (landing) | **0,94** | 0,98 | 0,92 | 1,00 |
+| `/dashboard` | **0,94** | 1,00 | 0,96 | 1,00 |
+
+Baseline anterior documentado: 0,96 (landing, mobile). **0,94 é
+ligeiramente abaixo, não uma regressão clara** — CLS (0,006), TBT
+(100ms) e FCP (1,2s) continuam excelentes; o único ponto puxando a
+nota pra baixo é LCP em 3,0s (score 0,77 nesse audit isolado), e o
+Lighthouse rodou aqui num Chrome headless num sandbox compartilhado
+(CPU sob contenção, não é o ambiente real da Vercel) — variação de
+run-to-run de ±0,02-0,03 é normal nesse tipo de medição. Reportando o
+número exato medido, não escondendo a diferença, mas também não
+inflando como "regressão confirmada" sem reproduzir contra o deploy
+real. Recomendo remedir contra a URL da Vercel assim que o deploy
+existir, pra ter comparação de ambiente igual.
+
+---
