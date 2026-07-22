@@ -493,3 +493,54 @@ real. Recomendo remedir contra a URL da Vercel assim que o deploy
 existir, pra ter comparação de ambiente igual.
 
 ---
+
+## SEÇÃO G — Checklist Final de Prontidão
+
+Só marcado ✅ o que foi de fato testado com evidência NESTA rodada
+(ver seção correspondente acima pra cada item):
+
+- [x] Build de produção passa — Seção A.1, rodado 3x ao longo da rodada, sempre limpo
+- [x] `npm audit` limpo (o que dá pra limpar) — Seção A.2, 2 restantes documentadas e confirmadas inexploráveis (uma delas — sharp — confirmada código morto nesta implantação)
+- [x] Frontend revisado em todas as páginas, desktop + mobile — Seção B, 11 rotas × 2 viewports, `screenshots_auditoria_final.zip`
+- [x] Lighthouse mobile sem regressão clara — Seção B, 0,94 em landing e dashboard (baseline 0,96, diferença dentro da variância normal de medição)
+- [x] RLS confirmado em todas as tabelas, incluindo as novas — Seção C, testado ao vivo no banco real (anon + authenticated, select + insert)
+- [x] Segurança de sessão — Seção C: admin com cookie httpOnly/secure/sameSite confirmado (7 cenários); usuário comum em localStorage, decisão consciente registrada com o Davi (paridade real exigiria refactor maior, fora do escopo desta rodada)
+- [x] Downloads de Ebook e mapa mental funcionando com validação de acesso — Seção D, `createSignedUrl` com `download:` real, mesmo gate de sempre
+- [x] Decisão sobre download de vídeo documentada — Seção D: streaming-only, decisão de produto (anti-pirataria, padrão Netflix), não pendência
+- [x] 5 novas funções do admin implementadas — Seção E: bulk approve/reject, busca/filtro, CSV, injeção manual por URL, painel de saúde da esteira. **Testadas por build+typecheck+query real no banco; não visualmente com dados reais** (sandbox sem rede pro Supabase — mesmo bloqueio de sempre)
+- [x] Tempo/custo do backfill recalculado com número real — Seção F: usando 137,8MB/531s medidos de um render real (não mais um chute), não a contagem oficial via API (ainda bloqueada, sem credencial)
+- [x] Storage R2 com projeção de custo real documentada — Seção F: ~US$1,25–1,50/mês de excedente, preço confirmado via busca (não memorizado sem checar)
+- [x] `.env.example` completo e atualizado — Seção A.4: 1 var faltando adicionada, 1 errada corrigida, 4 mortas removidas
+
+**Fora do checklist — não é código, é ação externa (aguardando o Davi):**
+- [ ] Contagem real do catálogo via YouTube API — bloqueado por falta de credencial (`YOUTUBE_CLIENT_ID/SECRET/REFRESH_TOKEN`), não é algo que eu resolvo daqui
+- [ ] Chave do YouTube (a mesma acima) — inicia toda a Seção F.1 e o backfill de verdade
+- [ ] Configurar Stripe produção (sandbox "Ziily AIs" segue em uso) — decisão/credencial do Davi
+- [ ] Deploy na Vercel — bloqueado por permissão do conector MCP (403 documentado em `docs/deploy-final-log.md`), precisa de import manual do Davi
+- [ ] Confirmar plano do Supabase tem backup automático (Free não tem) — ação de conta, não código (já sinalizado em `docs/security-audit-log.md`)
+
+## Resposta à pergunta do prompt: "só falta YouTube + Stripe + deploy?"
+
+**Quase sim, com uma ressalva honesta.** Em código, RLS, segurança,
+downloads, admin e documentação de custo/escala: sim, está pronto —
+com evidência real nesta rodada, não suposição. As 3 ações externas
+continuam sendo exatamente as 3 que sempre foram: chave YouTube,
+Stripe produção, deploy Vercel.
+
+A ressalva: **a sessão do usuário comum usa localStorage, não cookie
+httpOnly** — decisão consciente tomada com o Davi nesta rodada (não
+uma pendência escondida), mas é uma diferença de postura de segurança
+em relação ao admin que vale registrar aqui de novo pra não se perder
+no meio do documento. Se algum dia quiser fechar essa lacuna de
+verdade, é um projeto à parte (mover as queries client-side pra
+server-side), não um ajuste rápido.
+
+Achados corrigidos nesta rodada que não estavam no checklist original
+mas apareceram durante a auditoria: 2 vulnerabilidades npm novas
+corrigidas, `.env.example` desatualizado, TODO enganoso sobre
+segurança do layout de membros, 2 rotas stub órfãs removidas, e
+downloads de Ebook/mapa que na prática só abriam inline em vez de
+baixar de verdade. Nenhum desses era conhecido antes desta auditoria —
+é exatamente o tipo de coisa que essa rodada existia pra pegar.
+
+---
