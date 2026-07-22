@@ -56,6 +56,7 @@ async function main() {
     .from("episodios_processados")
     .select("youtube_video_id, titulo")
     .eq("status_pipeline", "pendente")
+    .order("prioridade", { ascending: false })
     .order("data_publicacao_youtube", { ascending: false })
     .limit(LOTE);
   if (error) throw error;

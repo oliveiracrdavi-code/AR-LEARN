@@ -231,3 +231,77 @@ confirmado por leitura do código (não mudou nesta correção, só a opção
 `download` foi adicionada em cima do fluxo já existente).
 
 ---
+
+## SEÇÃO E — Admin Panel: Confirmado + 5 Funções Novas
+
+### Já existente (re-confirmado por leitura + smoke test, sem regressão)
+- Concessão manual de acesso por e-mail — `concederAcesso` em `acoes.ts`, inalterado.
+- Dashboard de vendas/receita — inalterado, re-renderizado no smoke test.
+
+### 5 funções novas — todas implementadas nesta rodada
+
+1. **Aprovação em lote**: checkboxes em cada item de "Pendentes de
+   revisão" + 2 botões ("Aprovar selecionados", "Rejeitar
+   selecionados"). Tecnicamente: um `<form id="form-lote-revisao">`
+   "fantasma" declara o contexto; os checkboxes e os botões de lote se
+   associam a ele via atributo HTML `form=` (nativo, funciona mesmo
+   fora da árvore DOM do form) — os forms individuais de
+   aprovar/rejeitar item-a-item continuam intactos e sem conflito,
+   porque cada um só carrega o próprio `learn_id`. Novas actions
+   `aprovarLearnsEmLote`/`rejeitarLearnsEmLote` em `acoes.ts` usam
+   `formData.getAll("learn_ids")` + `.in("id", ids)`.
+2. **Busca e filtro**: `Learns — gestão` ganhou busca por título (ilike)
+   + filtro por status; `Usuários e acessos` ganhou busca por e-mail.
+   Implementado como filtro real no banco (`.ilike()`), não em memória
+   — importa em escala de ~700 itens. **Achado corrigido durante a
+   implementação**: a lista `learns` original alimentava TRÊS coisas
+   diferentes (lookup de título em Compras/Usuários, fila de
+   "pendentes de revisão", E a grade de gestão) — se ela fosse
+   filtrada, um filtro de título quebraria as outras duas seções sem
+   relação nenhuma com o filtro. Corrigido separando em `learns`
+   (sempre completa) e `learnsGestao` (filtrada, só usada na grade).
+3. **Exportar CSV**: `GET /api/admin/vendas/csv` (gated por
+   `autorizado()`, confirmado `401` sem cookie no smoke test da Seção
+   C) — serializa todas as compras com `Content-Disposition:
+   attachment`. Dado NÃO mascarado (mesmo nível de confiança de
+   `?revelar=1`, mesmo gate — é exatamente pra contabilidade/imposto,
+   mascarar inutilizaria o arquivo).
+4. **Injeção manual por URL**: form que aceita URL completa
+   (`watch?v=`, `youtu.be/`, `/shorts/`) ou o ID puro, extrai o
+   `videoId`, e faz upsert em `episodios_processados` com
+   `prioridade=true` + `status_pipeline='pendente'` (sem duplicar linha
+   se o episódio já existir na fila). Pra a prioridade ter efeito de
+   verdade, `scripts/processar-fila.ts` (que roda no GitHub Actions)
+   foi atualizado: `.order("prioridade", {ascending:false})` antes do
+   `.order("data_publicacao_youtube")` — confirmado por leitura do
+   código, sem teste real de execução (não há vídeo real ainda).
+5. **Painel de saúde da esteira**: 3 StatCards — pendentes na fila,
+   última execução com sucesso, erros nas últimas 24h. Contagens via
+   `count: 'exact', head: true` DIRETO NO BANCO (não sobre os 20 itens
+   exibidos na tabela) — testado ao vivo contra o schema real via MCP:
+
+   ```json
+   {"pendentes":0,"erros_24h":0,"ultimo_sucesso":null,"coluna_prioridade_existe":"prioridade"}
+   ```
+
+   (Zeros esperados: fila vazia, aguardando a chave do YouTube.)
+
+### Migration nova
+`supabase/migrations/20260722220600_prioridade_fila.sql` — coluna
+`episodios_processados.prioridade boolean not null default false`.
+Aplicada no projeto real via MCP (confirmado `{"success":true}`) e
+versionada no repo.
+
+### Validação
+Build de produção limpo com as 5 mudanças. FK
+`compras_learn_id_fkey → learns.id` confirmada ao vivo (necessária pro
+`.select("...,learns(titulo)")` embutido do CSV funcionar). Smoke test
+via Playwright (login real + render da página) confirma que nada
+quebrou — sem crash, sem erro 500 — mas **as seções novas não puderam
+ser verificadas visualmente com dados reais**: o sandbox não alcança
+`*.supabase.co` (mesmo bloqueio de rede documentado em
+`docs/migracao-r2-log.md`), então o painel cai no estado gracioso
+"Supabase indisponível" aqui. Validação real (visual, com dados) só é
+possível em produção/deploy — reportado com honestidade, não inventado.
+
+---

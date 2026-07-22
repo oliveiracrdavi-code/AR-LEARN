@@ -3,11 +3,14 @@ import { autorizado } from "./gate";
 import {
   alternarHero,
   aprovarLearn,
+  aprovarLearnsEmLote,
   atualizarLearn,
   concederAcesso,
   definirModoPublicacao,
   entrarAdmin,
+  injetarEpisodio,
   rejeitarLearn,
+  rejeitarLearnsEmLote,
   sairAdmin,
 } from "./acoes";
 import { AlteracoesPainel } from "./AlteracoesPainel";
@@ -63,10 +66,20 @@ function StatCard({ rotulo, valor, detalhe }: { rotulo: string; valor: string; d
   );
 }
 
-type Props = { searchParams: Promise<{ erro?: string; acesso?: string; revelar?: string }> };
+type Props = {
+  searchParams: Promise<{
+    erro?: string;
+    acesso?: string;
+    revelar?: string;
+    injecao?: string;
+    qLearns?: string;
+    statusLearns?: string;
+    qUsuarios?: string;
+  }>;
+};
 
 export default async function AdminPage({ searchParams }: Props) {
-  const { erro, acesso, revelar } = await searchParams;
+  const { erro, acesso, revelar, injecao, qLearns, statusLearns, qUsuarios } = await searchParams;
 
   const Bloco = ({ children }: { children: React.ReactNode }) => (
     <main className="fundo-grid" style={{ minHeight: "100vh", padding: "40px 6vw 80px" }}>
@@ -120,28 +133,66 @@ export default async function AdminPage({ searchParams }: Props) {
     preco_centavos: number; fixado_no_hero: boolean; thumbnail_url: string | null;
     publicado_at: string | null;
   }[] = [];
+  // Lista filtrada (busca/status) só pra seção "Learns — gestão" — a
+  // `learns` acima fica sempre COMPLETA porque alimenta o lookup de
+  // título em Compras/Usuários e a fila de "pendentes de revisão"; se
+  // ela também fosse filtrada, um filtro de título quebraria essas
+  // duas seções sem relação nenhuma com o filtro.
+  let learnsGestao: typeof learns = [];
   let perfis: { id: string; email: string | null; created_at: string }[] = [];
-  let fila: { youtube_video_id: string; titulo: string | null; status_pipeline: string; processado_em: string | null }[] = [];
+  let fila: { youtube_video_id: string; titulo: string | null; status_pipeline: string; processado_em: string | null; prioridade: boolean }[] = [];
   let acessosAdmin: { ip: string | null; created_at: string }[] = [];
   let modoPublicacao = "revisao_manual";
+  // Saúde da esteira (item novo): tamanho real da fila, última execução
+  // com sucesso e erros nas últimas 24h — contagens direto no banco
+  // (não sobre os 20 itens exibidos), pra valer em escala de 700 eps.
+  let saudeEsteira = { pendentes: 0, ultimoSucesso: null as string | null, erros24h: 0 };
+
+  const filtroLearns = (qLearns ?? "").trim();
+  const filtroStatusLearns = statusLearns ?? "";
+  const filtroUsuarios = (qUsuarios ?? "").trim();
 
   try {
     const supabase = createServiceRoleSupabaseClient();
-    const [c, l, p, f, a, m] = await Promise.all([
+
+    const colunasLearns = "id, slug, titulo, resumo, status, preco_centavos, fixado_no_hero, thumbnail_url, publicado_at";
+    let queryLearnsGestao = supabase.from("learns").select(colunasLearns).order("created_at");
+    if (filtroLearns) queryLearnsGestao = queryLearnsGestao.ilike("titulo", `%${filtroLearns}%`);
+    if (filtroStatusLearns) queryLearnsGestao = queryLearnsGestao.eq("status", filtroStatusLearns);
+
+    let queryUsuarios = supabase
+      .from("perfis")
+      .select("id, email, created_at")
+      .order("created_at", { ascending: false })
+      .limit(100);
+    if (filtroUsuarios) queryUsuarios = queryUsuarios.ilike("email", `%${filtroUsuarios}%`);
+
+    const desde24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const [c, l, lg, p, f, a, m, pendentesCount, erros24hCount, ultimoConcluido] = await Promise.all([
       supabase.from("compras").select("id, usuario_id, email, valor, status, provedor, created_at, aprovado_at, learn_id").order("created_at", { ascending: false }),
-      supabase.from("learns").select("id, slug, titulo, resumo, status, preco_centavos, fixado_no_hero, thumbnail_url, publicado_at").order("created_at"),
-      supabase.from("perfis").select("id, email, created_at").order("created_at", { ascending: false }).limit(100),
-      supabase.from("episodios_processados").select("youtube_video_id, titulo, status_pipeline, processado_em").order("created_at", { ascending: false }).limit(20),
+      supabase.from("learns").select(colunasLearns).order("created_at"),
+      queryLearnsGestao,
+      queryUsuarios,
+      supabase.from("episodios_processados").select("youtube_video_id, titulo, status_pipeline, processado_em, prioridade").order("prioridade", { ascending: false }).order("created_at", { ascending: false }).limit(20),
       supabase.from("admin_access_log").select("ip, created_at").order("created_at", { ascending: false }).limit(8),
       supabase.from("plataforma_config").select("valor").eq("chave", "modo_publicacao").maybeSingle(),
+      supabase.from("episodios_processados").select("id", { count: "exact", head: true }).eq("status_pipeline", "pendente"),
+      supabase.from("episodios_processados").select("id", { count: "exact", head: true }).eq("status_pipeline", "erro").gte("created_at", desde24h),
+      supabase.from("episodios_processados").select("processado_em").eq("status_pipeline", "concluido").order("processado_em", { ascending: false }).limit(1).maybeSingle(),
     ]);
     if (c.error) throw c.error;
     compras = (c.data ?? []) as Compra[];
     learns = l.data ?? [];
+    learnsGestao = lg.data ?? [];
     perfis = p.data ?? [];
     fila = f.data ?? [];
     acessosAdmin = a.data ?? [];
     modoPublicacao = m.data?.valor ?? "revisao_manual";
+    saudeEsteira = {
+      pendentes: pendentesCount.count ?? 0,
+      erros24h: erros24hCount.count ?? 0,
+      ultimoSucesso: ultimoConcluido.data?.processado_em ?? null,
+    };
   } catch (e) {
     erroConexao = e instanceof Error ? e.message : "erro de conexão";
   }
@@ -184,6 +235,8 @@ export default async function AdminPage({ searchParams }: Props) {
         </a>
         {acesso === "ok" ? <span className="chip" style={{ borderColor: "var(--goldenrod)", color: "var(--goldenrod)" }}>Acesso concedido ✓</span> : null}
         {acesso === "falhou" || acesso === "invalido" ? <span className="chip" style={{ color: "#ff8a5c" }}>Concessão falhou — confira o e-mail</span> : null}
+        {injecao === "ok" ? <span className="chip" style={{ borderColor: "var(--goldenrod)", color: "var(--goldenrod)" }}>Episódio injetado com prioridade ✓</span> : null}
+        {injecao === "invalido" ? <span className="chip" style={{ color: "#ff8a5c" }}>URL inválida — cole o link do vídeo do YouTube</span> : null}
       </div>
 
       {erroConexao ? (
@@ -232,7 +285,10 @@ export default async function AdminPage({ searchParams }: Props) {
             </p>
           </div>
 
-          <h3 className="kicker" style={{ marginTop: 26 }}>Últimas compras</h3>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 26, flexWrap: "wrap", gap: 10 }}>
+            <h3 className="kicker" style={{ margin: 0 }}>Últimas compras</h3>
+            <a href="/api/admin/vendas/csv" className="chip">Exportar CSV de vendas ↓</a>
+          </div>
           <div className="tabela-scroll" style={{ marginTop: 12 }}><table style={{ borderCollapse: "collapse", width: "100%", background: "var(--dark-void)", borderRadius: 12, minWidth: 680 }}>
             <thead>
               <tr style={{ color: "var(--dusty-grey)" }}>
@@ -281,16 +337,37 @@ export default async function AdminPage({ searchParams }: Props) {
           <h2 className="kicker" style={{ marginTop: 40 }}>Alterações via IA</h2>
           <AlteracoesPainel />
 
-          {/* ── FILA DE REVISÃO (aprovação manual) ── */}
+          {/* ── FILA DE REVISÃO (aprovação manual, com aprovação em lote) ── */}
           {learns.some((l) => l.status === "em_revisao") ? (
             <>
               <h2 className="kicker" style={{ marginTop: 40 }}>Pendentes de revisão</h2>
+              <p style={{ color: "var(--dusty-grey)", fontSize: 12.5, marginTop: 6 }}>
+                Marque vários e use os botões de lote — essencial com o catálogo em ~700
+                episódios, onde aprovar um por um não é viável.
+              </p>
+              {/* Form "fantasma": só declara o contexto pros checkboxes e
+                  botões de lote abaixo, que se associam a ele via
+                  form="form-lote-revisao" mesmo estando fora do DOM dele —
+                  os forms individuais de cada item continuam à parte, sem
+                  conflito (cada um só tem o PRÓPRIO learn_id). */}
+              <form id="form-lote-revisao" style={{ display: "none" }} />
+              <div style={{ display: "flex", gap: 10, marginTop: 12, flexWrap: "wrap" }}>
+                <button form="form-lote-revisao" formAction={aprovarLearnsEmLote} type="submit" className="botao-goldenrod" style={{ fontSize: 13.5, padding: "9px 20px" }}>
+                  Aprovar selecionados → publicar
+                </button>
+                <button form="form-lote-revisao" formAction={rejeitarLearnsEmLote} type="submit" className="chip" style={{ cursor: "pointer", background: "transparent", color: "#ff8a5c" }}>
+                  Rejeitar selecionados
+                </button>
+              </div>
               <div style={{ display: "grid", gap: 12, marginTop: 14 }}>
                 {learns.filter((l) => l.status === "em_revisao").map((l) => (
                   <div key={l.id} className="cartao" style={{ padding: 18, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 14, flexWrap: "wrap", borderColor: "rgba(255,203,0,0.5)" }}>
-                    <div>
-                      <strong>{l.titulo}</strong>
-                      <span style={{ color: "var(--dusty-grey)", fontSize: 13, marginLeft: 10 }}>/{l.slug}</span>
+                    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                      <input type="checkbox" form="form-lote-revisao" name="learn_ids" value={l.id} style={{ width: 18, height: 18, cursor: "pointer" }} aria-label={`Selecionar ${l.titulo}`} />
+                      <div>
+                        <strong>{l.titulo}</strong>
+                        <span style={{ color: "var(--dusty-grey)", fontSize: 13, marginLeft: 10 }}>/{l.slug}</span>
+                      </div>
                     </div>
                     <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
                       <form action={aprovarLearn}>
@@ -311,8 +388,24 @@ export default async function AdminPage({ searchParams }: Props) {
 
           {/* ── GESTÃO DE LEARNS (CRUD) ── */}
           <h2 className="kicker" style={{ marginTop: 40 }}>Learns — gestão</h2>
+          <form method="get" style={{ display: "flex", gap: 10, marginTop: 12, flexWrap: "wrap", alignItems: "center" }}>
+            <input
+              name="qLearns"
+              defaultValue={filtroLearns}
+              placeholder="Buscar por título..."
+              style={{ flex: "1 1 220px", padding: "9px 12px", borderRadius: 10, border: "1.5px solid rgba(251,251,251,0.2)", background: "var(--black)", color: "var(--off-white)", fontFamily: "inherit", fontSize: 13.5 }}
+            />
+            <select name="statusLearns" defaultValue={filtroStatusLearns} style={{ padding: "9px 12px", borderRadius: 10, border: "1.5px solid rgba(251,251,251,0.2)", background: "var(--black)", color: "var(--off-white)", fontFamily: "inherit", fontSize: 13.5 }}>
+              <option value="">Todos os status</option>
+              <option value="rascunho">rascunho</option>
+              <option value="em_revisao">em_revisao</option>
+              <option value="publicado">publicado</option>
+            </select>
+            <button type="submit" className="chip" style={{ cursor: "pointer", background: "transparent" }}>Filtrar</button>
+            {(filtroLearns || filtroStatusLearns) ? <a href="/admin" className="chip">Limpar</a> : null}
+          </form>
           <div style={{ display: "grid", gap: 16, marginTop: 14 }}>
-            {learns.map((l) => (
+            {learnsGestao.map((l) => (
               <div key={l.id} className="cartao" style={{ padding: 20 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
                   <div>
@@ -369,11 +462,27 @@ export default async function AdminPage({ searchParams }: Props) {
                 </div>
               </div>
             ))}
-            {learns.length === 0 ? <p style={{ color: "var(--dusty-grey)" }}>Nenhum Learn cadastrado (rode o seed).</p> : null}
+            {learnsGestao.length === 0 ? (
+              <p style={{ color: "var(--dusty-grey)" }}>
+                {filtroLearns || filtroStatusLearns
+                  ? "Nenhum Learn bate com o filtro."
+                  : "Nenhum Learn cadastrado (rode o seed)."}
+              </p>
+            ) : null}
           </div>
 
           {/* ── USUÁRIOS / ACESSOS ── */}
           <h2 className="kicker" style={{ marginTop: 40 }}>Usuários e acessos</h2>
+          <form method="get" style={{ display: "flex", gap: 10, marginTop: 12, flexWrap: "wrap", alignItems: "center" }}>
+            <input
+              name="qUsuarios"
+              defaultValue={filtroUsuarios}
+              placeholder="Buscar por e-mail..."
+              style={{ flex: "1 1 220px", padding: "9px 12px", borderRadius: 10, border: "1.5px solid rgba(251,251,251,0.2)", background: "var(--black)", color: "var(--off-white)", fontFamily: "inherit", fontSize: 13.5 }}
+            />
+            <button type="submit" className="chip" style={{ cursor: "pointer", background: "transparent" }}>Filtrar</button>
+            {filtroUsuarios ? <a href="/admin" className="chip">Limpar</a> : null}
+          </form>
           <div className="tabela-scroll" style={{ marginTop: 12 }}><table style={{ borderCollapse: "collapse", width: "100%", background: "var(--dark-void)", borderRadius: 12, minWidth: 560 }}>
             <thead>
               <tr style={{ color: "var(--dusty-grey)" }}>
@@ -394,7 +503,7 @@ export default async function AdminPage({ searchParams }: Props) {
                 );
               })}
               {perfis.length === 0 ? (
-                <tr><td style={celula} colSpan={3}>Nenhum usuário cadastrado ainda.</td></tr>
+                <tr><td style={celula} colSpan={3}>{filtroUsuarios ? "Nenhum usuário bate com o filtro." : "Nenhum usuário cadastrado ainda."}</td></tr>
               ) : null}
             </tbody>
           </table></div>
@@ -420,7 +529,47 @@ export default async function AdminPage({ searchParams }: Props) {
 
           {/* ── FILA DE CONTEÚDO (esteira) ── */}
           <h2 className="kicker" style={{ marginTop: 40 }}>Fila de conteúdo (esteira do YouTube)</h2>
-          <div className="tabela-scroll" style={{ marginTop: 12 }}><table style={{ borderCollapse: "collapse", width: "100%", background: "var(--dark-void)", borderRadius: 12, minWidth: 560 }}>
+
+          {/* Saúde da esteira: item novo — visibilidade operacional sem
+              custo, só consulta ao banco que já existe. */}
+          <div style={{ display: "flex", gap: 16, marginTop: 14, flexWrap: "wrap" }}>
+            <StatCard rotulo="Na fila agora (pendentes)" valor={String(saudeEsteira.pendentes)} />
+            <StatCard
+              rotulo="Última execução com sucesso"
+              valor={saudeEsteira.ultimoSucesso ? new Date(saudeEsteira.ultimoSucesso).toLocaleString("pt-BR") : "—"}
+              detalhe={saudeEsteira.ultimoSucesso ? undefined : "nenhum episódio concluído ainda"}
+            />
+            <StatCard
+              rotulo="Erros nas últimas 24h"
+              valor={String(saudeEsteira.erros24h)}
+              detalhe={saudeEsteira.erros24h > 0 ? "confira erro_log em episodios_processados" : "tudo certo"}
+            />
+          </div>
+
+          {/* Injeção manual por URL: item novo — pula a ordem normal
+              (mais novo primeiro) pra processar um episódio específico
+              já na próxima execução da esteira. */}
+          <div className="cartao" style={{ marginTop: 16, padding: 20, maxWidth: 640 }}>
+            <p style={{ fontWeight: 700, fontSize: 15 }}>Injetar episódio com prioridade</p>
+            <p style={{ color: "var(--dusty-grey)", fontSize: 13, marginTop: 6 }}>
+              Cole a URL (ou o ID) de um vídeo do canal — ele entra/volta pra fila como
+              pendente com prioridade e é pego antes dos demais na próxima execução, sem
+              esperar o cron.
+            </p>
+            <form action={injetarEpisodio} style={{ display: "flex", gap: 10, marginTop: 14, flexWrap: "wrap" }}>
+              <input
+                name="url_video"
+                required
+                placeholder="https://www.youtube.com/watch?v=..."
+                style={{ flex: "1 1 280px", padding: "10px 12px", borderRadius: 10, border: "1.5px solid rgba(251,251,251,0.2)", background: "var(--black)", color: "var(--off-white)", fontFamily: "inherit" }}
+              />
+              <button type="submit" className="botao-goldenrod" style={{ fontSize: 14, padding: "10px 22px" }}>
+                Injetar com prioridade →
+              </button>
+            </form>
+          </div>
+
+          <div className="tabela-scroll" style={{ marginTop: 16 }}><table style={{ borderCollapse: "collapse", width: "100%", background: "var(--dark-void)", borderRadius: 12, minWidth: 560 }}>
             <thead>
               <tr style={{ color: "var(--dusty-grey)" }}>
                 <th style={celula}>Episódio</th><th style={celula}>Vídeo</th><th style={celula}>Estágio</th><th style={celula}>Processado em</th>
@@ -429,7 +578,10 @@ export default async function AdminPage({ searchParams }: Props) {
             <tbody>
               {fila.map((f) => (
                 <tr key={f.youtube_video_id}>
-                  <td style={celula}>{f.titulo ?? "—"}</td>
+                  <td style={celula}>
+                    {f.prioridade ? <span title="Prioridade" style={{ color: "var(--goldenrod)", marginRight: 6 }}>★</span> : null}
+                    {f.titulo ?? "—"}
+                  </td>
                   <td style={{ ...celula, color: "var(--dusty-grey)" }}>{f.youtube_video_id}</td>
                   <td style={{ ...celula, color: f.status_pipeline === "concluido" ? "var(--goldenrod)" : undefined, fontWeight: 600 }}>{f.status_pipeline}</td>
                   <td style={celula}>{f.processado_em ? new Date(f.processado_em).toLocaleString("pt-BR") : "—"}</td>

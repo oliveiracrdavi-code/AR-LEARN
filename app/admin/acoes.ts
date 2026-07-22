@@ -177,3 +177,86 @@ export async function rejeitarLearn(formData: FormData) {
     .eq("id", id);
   revalidatePath("/admin");
 }
+
+// Aprovação/rejeição EM LOTE — item novo da auditoria final: com ~700
+// episódios no catálogo, aprovar um por um em modo revisão manual é
+// inviável. Checkboxes com o mesmo name="learn_ids" chegam aqui como
+// múltiplos valores (formData.getAll).
+export async function aprovarLearnsEmLote(formData: FormData) {
+  if (!(await autorizado())) return;
+  const ids = formData.getAll("learn_ids").filter((v): v is string => typeof v === "string");
+  if (ids.length === 0) return;
+  await createServiceRoleSupabaseClient()
+    .from("learns")
+    .update({ status: "publicado", publicado_at: new Date().toISOString() })
+    .in("id", ids);
+  revalidatePath("/admin");
+}
+
+export async function rejeitarLearnsEmLote(formData: FormData) {
+  if (!(await autorizado())) return;
+  const ids = formData.getAll("learn_ids").filter((v): v is string => typeof v === "string");
+  if (ids.length === 0) return;
+  await createServiceRoleSupabaseClient()
+    .from("learns")
+    .update({ status: "rascunho" })
+    .in("id", ids);
+  revalidatePath("/admin");
+}
+
+// Injeção manual de episódio por URL — item novo: cola a URL de um
+// vídeo específico do canal e ele entra na fila com prioridade=true,
+// então processar-fila.ts pega ele antes dos demais na próxima
+// execução (sem esperar o cron/próxima ordem por data). Aceita URL
+// completa (watch?v=, youtu.be/, shorts/) ou o ID puro (11 chars).
+function extrairVideoId(entrada: string): string | null {
+  const limpo = entrada.trim();
+  if (/^[a-zA-Z0-9_-]{11}$/.test(limpo)) return limpo;
+  try {
+    const url = new URL(limpo);
+    if (url.hostname === "youtu.be") return url.pathname.slice(1) || null;
+    const v = url.searchParams.get("v");
+    if (v) return v;
+    const m = url.pathname.match(/\/shorts\/([a-zA-Z0-9_-]{11})/);
+    if (m) return m[1];
+  } catch {
+    // não era uma URL válida
+  }
+  return null;
+}
+
+export async function injetarEpisodio(formData: FormData) {
+  if (!(await autorizado())) return;
+  const entrada = formData.get("url_video");
+  if (typeof entrada !== "string" || !entrada.trim()) {
+    redirect("/admin?injecao=invalido");
+  }
+  const videoId = extrairVideoId(entrada);
+  if (!videoId) {
+    redirect("/admin?injecao=invalido");
+  }
+
+  const supabase = createServiceRoleSupabaseClient();
+  const { data: existente } = await supabase
+    .from("episodios_processados")
+    .select("id, status_pipeline")
+    .eq("youtube_video_id", videoId)
+    .maybeSingle();
+
+  if (existente) {
+    // Já está na fila (ou já processado) — só marca prioridade e volta
+    // pra pendente se não estiver em andamento, nunca duplica a linha.
+    await supabase
+      .from("episodios_processados")
+      .update({ prioridade: true, status_pipeline: "pendente" })
+      .eq("id", existente.id);
+  } else {
+    await supabase.from("episodios_processados").insert({
+      youtube_video_id: videoId,
+      status_pipeline: "pendente",
+      prioridade: true,
+    });
+  }
+  revalidatePath("/admin");
+  redirect("/admin?injecao=ok");
+}
