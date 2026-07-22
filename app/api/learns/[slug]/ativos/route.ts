@@ -39,7 +39,7 @@ export async function GET(
 
   const { data: learn, error } = await comoUsuario
     .from("learns")
-    .select("video_url, video_storage, ebook_url, mapa_mental_imagem_url")
+    .select("slug, video_url, video_storage, ebook_url, mapa_mental_imagem_url")
     .eq("slug", slug)
     .maybeSingle();
 
@@ -53,11 +53,25 @@ export async function GET(
 
   const storageSupabase = createServiceRoleSupabaseClient().storage.from(BUCKET_LEARNS);
 
-  async function resolverSupabase(valor: string | null): Promise<string | null> {
+  // `download` no createSignedUrl seta Content-Disposition: attachment
+  // — sem isso o browser só abre o arquivo inline (visualização), não
+  // baixa de verdade. `nomeArquivo` opcional força um nome amigável em
+  // vez do path interno do bucket (que costuma ser um hash/uuid).
+  async function resolverSupabase(
+    valor: string | null,
+    nomeArquivo?: string
+  ): Promise<string | null> {
     if (!valor) return null;
     if (!assinavel(valor)) return valor; // URL externa (ex.: YouTube) passa direto
-    const { data } = await storageSupabase.createSignedUrl(valor, VALIDADE_SEGUNDOS);
+    const { data } = await storageSupabase.createSignedUrl(valor, VALIDADE_SEGUNDOS, {
+      download: nomeArquivo ?? true,
+    });
     return data?.signedUrl ?? null;
+  }
+
+  function extensaoDe(valor: string | null): string {
+    const m = valor?.match(/\.([a-zA-Z0-9]+)$/);
+    return m ? m[1] : "pdf";
   }
 
   async function resolverVideo(): Promise<string | null> {
@@ -71,7 +85,10 @@ export async function GET(
 
   return NextResponse.json({
     video: await resolverVideo(),
-    ebook: await resolverSupabase(ebook_url),
-    mapa: await resolverSupabase(mapa_mental_imagem_url),
+    ebook: await resolverSupabase(ebook_url, `${slug}-ebook.${extensaoDe(ebook_url)}`),
+    mapa: await resolverSupabase(
+      mapa_mental_imagem_url,
+      `${slug}-mapa-mental.${extensaoDe(mapa_mental_imagem_url)}`
+    ),
   });
 }

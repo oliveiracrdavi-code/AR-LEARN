@@ -127,6 +127,13 @@ export default function LearnPage({
         <p style={{ color: "var(--dusty-grey)", fontSize: 16, marginTop: 12, maxWidth: 760 }}>{l.resumo}</p>
       ) : null}
 
+      {/* Vídeo: streaming apenas, sem link de download (decisão de
+          produto consciente, não pendência) — mesmo padrão de
+          plataformas de curso/streaming (Netflix, a própria referência
+          da vitrine): reduz pirataria fácil de "salvar e repassar" sem
+          atrapalhar quem está só assistindo. Ebook e mapa mental, que
+          são material de apoio pra guardar/imprimir, têm download real
+          (Content-Disposition: attachment na signed URL). */}
       <div className="cartao" style={{ marginTop: 28, padding: 0, overflow: "hidden", maxWidth: 1080 }}>
         {ativos?.video ? (
           <video
@@ -149,15 +156,15 @@ export default function LearnPage({
 
       <div style={{ display: "flex", gap: 14, marginTop: 24, flexWrap: "wrap" }}>
         {ativos?.ebook ? (
-          <a href={ativos.ebook} target="_blank" rel="noreferrer" className="botao-goldenrod">
+          <a href={ativos.ebook} download rel="noreferrer" className="botao-goldenrod">
             Baixar o Ebook →
           </a>
         ) : (
           <span className="chip">Ebook em preparação</span>
         )}
         {ativos?.mapa ? (
-          <a href={ativos.mapa} target="_blank" rel="noreferrer" className="chip">
-            Ver mapa mental
+          <a href={ativos.mapa} download rel="noreferrer" className="chip">
+            Baixar mapa mental
           </a>
         ) : null}
       </div>

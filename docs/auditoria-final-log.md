@@ -93,6 +93,18 @@ comentários, não marcador de pendência):
   (a proteção de dados sempre existiu via RLS; só o comentário estava
   errado). Troquei o TODO por um comentário que descreve o padrão real.
 
+**Achado extra durante essa checagem** (fora do TODO, mas relacionado):
+`app/(members)/modulos/[slug]/page.tsx` e `.../trilhas/[slug]/page.tsx`
+eram **stubs órfãos** — sem nenhuma consulta a dado nenhum, sem link
+de nenhum lugar do app (`grep` confirmou zero referências), e
+contradiziam a decisão de arquitetura já registrada ("Trilha/Módulo
+continuam só estrutura de banco, nunca virem rótulo de UI"). Risco de
+segurança: nulo (não expunham dado nenhum). Removidos como limpeza —
+não fazem parte do produto final.
+
+Build de produção rodado de novo após as remoções — continua limpo
+(ver item 1).
+
 ---
 
 ## SEÇÃO C — Segurança: Admin + Cada Conta de Usuário
@@ -183,14 +195,39 @@ chamando `supabase.auth.signOut()` (limpa a sessão) e redireciona pra
 `/`. Confirmado por leitura do código; é a mesma API oficial do
 supabase-js, comportamento padrão e testado pela própria lib.
 
-**Achado extra durante essa checagem** (fora do TODO, mas relacionado):
-`app/(members)/modulos/[slug]/page.tsx` e `.../trilhas/[slug]/page.tsx`
-eram **stubs órfãos** — sem nenhuma consulta a dado nenhum, sem link
-de nenhum lugar do app (`grep` confirmou zero referências), e
-contradiziam a decisão de arquitetura já registrada ("Trilha/Módulo
-continuam só estrutura de banco, nunca virem rótulo de UI"). Risco de
-segurança: nulo (não expunham dado nenhum). Removidos como limpeza —
-não fazem parte do produto final.
+---
 
-Build de produção rodado de novo após as remoções — continua limpo
-(ver item 1).
+## SEÇÃO D — Downloads Reais (Vídeo, Ebook, Mapa Mental)
+
+**Achado real, corrigido nesta rodada**: nem Ebook nem mapa mental
+tinham download de verdade. `createSignedUrl` era chamado sem a opção
+`download` — o link "Baixar o Ebook" abria o PDF inline no browser (só
+visualização, apesar do texto do botão), e o mapa mental nem tinha
+texto de "baixar" (dizia "Ver mapa mental").
+
+**Corrigido**: `app/api/learns/[slug]/ativos/route.ts` agora chama
+`createSignedUrl(path, validade, { download: nomeArquivo })` pra Ebook
+e mapa — confirmado no código-fonte do SDK instalado
+(`node_modules/@supabase/storage-js`, `download?: string | boolean` é
+opção real da API, não suposição) que isso seta
+`Content-Disposition: attachment` com nome amigável (`{slug}-ebook.pdf`,
+`{slug}-mapa-mental.svg`) em vez do path interno do bucket. UI
+atualizada (`learns/[slug]/page.tsx`): "Baixar mapa mental" (era "Ver")
++ atributo `download` nos dois `<a>`.
+
+**Vídeo — decisão de produto, não pendência**: mantido **streaming
+apenas**, sem link de download. Documentado em comentário no código
+(`learns/[slug]/page.tsx`) e aqui: mesmo padrão de plataformas de
+curso/streaming (a própria referência de design é a vitrine estilo
+Netflix) — reduz o caso trivial de "salvar e repassar o arquivo"
+sem fricção nenhuma pra quem só quer assistir. Decisão consciente,
+reversível se o Davi quiser mudar depois.
+
+**Validação de acesso em todos os 3**: os três (`video`, `ebook`,
+`mapa`) saem da MESMA resposta de `/api/learns/[slug]/ativos`, que só
+roda depois da consulta `learns` com o token do usuário (RLS decide se
+a linha existe) — nenhum link direto/sem gate em nenhum dos três,
+confirmado por leitura do código (não mudou nesta correção, só a opção
+`download` foi adicionada em cima do fluxo já existente).
+
+---
