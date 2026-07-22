@@ -125,16 +125,69 @@ o erro exato, como pedido.
    com permissão "Admin Read & Write" (a atual parece ser "Object Read
    & Write", que não inclui gestão de bucket).
 
-### Estado do código nesta sessão
+### Estado do código nesta sessão (na época da 1ª tentativa)
 
 - `.env.local` e `.env.vercel` atualizados com as credenciais reais
-  (não são mais placeholder) — a única coisa pendente é a existência do
+  (não são mais placeholder) — a única coisa pendente era a existência do
   bucket, não configuração.
 - `scripts/testar-r2-conexao.ts` criado e versionado — reutilizável
-  assim que o bucket existir (rodar de novo confirma tudo em segundos).
+  assim que o bucket existisse (rodar de novo confirma tudo em segundos).
 - Nenhum arquivo de teste ficou no bucket (nunca chegou a subir nada,
   falhou antes do upload completar).
-- `subirVideoLearn`/`fila:processar`/`learn:subir-ativos` **ainda vão
+- `subirVideoLearn`/`fila:processar`/`learn:subir-ativos` **ainda iam
   falhar** ao tentar subir vídeo — agora com o erro real do R2
   (`NoSuchBucket`/`AccessDenied`) em vez do guard antigo de "faltam as
-  chaves". Ebook/mapa continuam 100% funcionais, sem depender disso.
+  chaves". Ebook/mapa continuavam 100% funcionais, sem depender disso.
+
+## Validação final — 2026-07-22 (terceiro token, sucesso)
+
+Histórico intermediário (resumo — nenhum contorno tentado em nenhuma
+rodada, sempre reportado o erro exato antes de qualquer nova tentativa):
+
+1. **Token 1** (2026-07-21): auth OK, mas bucket `ar-learn-videos` não
+   existia (`HeadBucket` 404) e o token não tinha permissão de
+   criar/listar bucket (`CreateBucket`/`ListBuckets` 403). Davi criou o
+   bucket manualmente no dashboard.
+2. **Reteste com token 1** pós-criação do bucket: `HeadBucket` e
+   `ListObjectsV2` passaram a `200 OK`, mas `PutObject` continuou `403
+   AccessDenied` — token escopado só a leitura de objeto (Object Read),
+   não Read & Write, apesar do nome. Um "novo" print enviado depois foi
+   comparado byte-a-byte com o token 1 (últimos 6 caracteres de Access
+   Key ID e Secret) e confirmado **idêntico** — mesma tela revisitada,
+   não um token novo de fato.
+3. Explorada a via de gerar um token via API da Cloudflare com um
+   token de conta (`cfut_...`) fornecido pelo Davi: bloqueada por
+   política de rede do sandbox em `api.cloudflare.com` (confirmado via
+   `$HTTPS_PROXY/__agentproxy/status`, `connect_rejected`/"policy
+   denial" — não é bug do R2, é bloqueio de saída do ambiente) e por
+   bloqueio do próprio site da Cloudflare a fetches de documentação
+   (403). Nenhum MCP Cloudflare disponível no ambiente. Descartada
+   deliberadamente a alternativa de rodar isso via GitHub Actions
+   passando o token de conta (risco de exposição de uma credencial com
+   escopo administrativo de conta inteira) — decisão explicada ao Davi
+   em vez de executada silenciosamente.
+4. **Token 3** (2026-07-22): gerado pelo Davi de fato como um novo
+   token (confirmado diferente dos anteriores por comparação de Access
+   Key ID e Secret completos, não só os últimos dígitos) — Object Read
+   & Write, escopado a `ar-learn-videos`.
+
+**Resultado do teste de ponta a ponta com o token 3: ✅ PASSOU nos 4
+passos.**
+
+```
+[1/4] Upload (61 bytes) -> OK
+[2/4] Presigned URL gerada, X-Amz-Expires=3600 (1h, conforme pedido) -> OK
+[3/4] Download via a URL assinada -> HTTP 200, conteúdo idêntico byte-a-byte -> OK
+[4/4] Delete do objeto de teste -> OK, nenhum lixo ficou no bucket de produção
+```
+
+`.env.local` e `.env.vercel` atualizados com os 5 valores do token 3
+(gitignored, confirmado). `subirVideoLearn`/`fila:processar`/
+`learn:subir-ativos` agora usam credenciais reais e funcionais — o
+guard antigo de "faltam as chaves" não dispara mais (as 3 chaves
+obrigatórias estão presentes e válidas), e uma tentativa real de upload
+não vai mais bater em `NoSuchBucket`/`AccessDenied`: o bucket existe e o
+token tem escrita. Nenhum vídeo real foi enviado ainda nesta sessão
+(pipeline aguarda a chave do YouTube pra rodar ponta a ponta com
+conteúdo de verdade) — a validação feita aqui é da CONEXÃO/credencial,
+não uma execução do pipeline completo.
