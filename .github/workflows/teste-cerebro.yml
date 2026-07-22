@@ -3,7 +3,7 @@
 # execução (GitHub Actions), já que a sandbox de desenvolvimento tem uma
 # restrição de rede de plataforma que bloqueia esses hosts. Apagar este
 # arquivo depois que o teste confirmar que está tudo certo.
-name: "[Temporário] Teste do cérebro (OpenRouter + Groq)"
+name: "[Temporário] Teste do cérebro (OpenRouter + Groq + Supabase)"
 
 on:
   workflow_dispatch: {}
@@ -56,3 +56,21 @@ jobs:
         env:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
         run: npx tsx scripts/gerar-fixture-real.ts
+
+      - name: Teste leve do Supabase (valida NEXT_PUBLIC_SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY novos, sem expor valores)
+        env:
+          SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
+            echo "Secret ausente (URL ou service role key vazia)"; exit 1
+          fi
+          codigo=$(curl -s -o /tmp/supabase.json -w "%{http_code}" \
+            -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
+            -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+            "$SUPABASE_URL/rest/v1/learns?select=id&limit=1")
+          if [ "$codigo" != "200" ]; then
+            echo "Supabase respondeu HTTP $codigo — secret inválida, URL errada, ou RLS bloqueando o service role (não deveria)"
+            exit 1
+          fi
+          echo "Supabase OK (HTTP 200) — GitHub Secrets NEXT_PUBLIC_SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY lidos e válidos."
